@@ -1920,7 +1920,7 @@ sub publish {
 	$p = "$1/$bin";
 	$p = $1 eq 'src' || $1 eq 'nosrc' ? "SRPMS/$bin" : "RPMS/$bin" if $repotype{'resarchhack'};
       } elsif ($bin =~ /^.+_[^_]+_([^_\.]+)\.[ud]?deb$/) {
-	$p = "$1/$bin";
+	$p = "$arch/$bin";
       } elsif ($bin =~ /\.(?:AppImage|AppImage.zsync|snap|exe)?$/) {
 	$p = "$bin";
       } elsif ($bin =~ /\.d?rpm$/) {
@@ -1931,7 +1931,7 @@ sub publish {
       } elsif ($bin =~ /\.deb$/) {
 	# legacy format XXX no udeb handling
 	my $q = Build::query("$r/$rbin", 'evra' => 1);
-	$p = "$q->{'arch'}/$q->{'name'}_$q->{'version'}";
+	$p = "$arch/$q->{'name'}_$q->{'version'}";
 	$p .= "-$q->{'release'}" if defined $q->{'release'};
 	$p .= "_$q->{'arch'}.deb";
       } elsif ($bin =~ /\.pkg\.tar\.(?:gz|xz|zst)(?:\.sig)?$/) {
@@ -2014,6 +2014,8 @@ sub publish {
         } elsif ($bin =~ /\.(?:tgz|zip)?(?:\.sha256)?$/) {
           # esp. for Go builds
           $p = "$bin";
+	} elsif ($bin =~ /\.changes(:?\.sha256)?$/) {
+	  $p = "$arch/$bin";
         } elsif ($bin =~ /\.squashfs$/) {
 	  $p = "$bin";	# for simpleimage builds
 	} elsif ($bin =~ /\.diff\.(?:gz)(?:\.sha256)?$/) {
