@@ -879,6 +879,7 @@ sub updaterepo_reprepro {
         qsystem ('reprepro', '-b', $repo,
           '--ignore=wrongdistribution',
           '--ignore=updatedarchall',
+	  '--ignore=unusedarch',
           '-C', $component,
           'include', $codename,
           "$extrep/$f");
