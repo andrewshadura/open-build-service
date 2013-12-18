@@ -204,6 +204,25 @@ our $relsync_pool = {
 #                           'main' => 'http://main-backend-server:5252',
 #                         };
 
+# Manage these projects' repositories with reprepro instead of using
+# dpkg-scanpackages/dpkg-scansources. Before enabling this, you will
+# need to create /srv/obs/repos/shared/exampledistro/
+# with a paragraph in its conf/distributions file containing
+# "Codename: examplesuite" and "Components: examplecomponent othercomponent"
+#
+#our $reprepository = {
+#  "exampledistro:examplesuite:examplecomponent/debian_wheezy_main_main" => {
+#    "repository" => "shared/exampledistro",
+#    "codename" => "examplesuite",
+#    "component" => "examplecomponent",
+#  },
+#  "exampledistro:examplesuite:othercomponent/debian_wheezy_main_main" => {
+#    "repository" => "shared/exampledistro",
+#    "codename" => "examplesuite",
+#    "component" => "othercomponent",
+#  },
+#};
+
 # host specific configs
 my $hostconfig = __FILE__;
 $hostconfig =~ s/[^\/]*$/bsconfig.$hostname/;
