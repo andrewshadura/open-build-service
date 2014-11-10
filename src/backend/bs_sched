@@ -1089,7 +1089,7 @@ eval {
     }
 
     # we always publish kiwi...
-    if ($isfinished || $ctx->{'prptype'} eq 'kiwi') {
+    if ($isfinished || $ctx->{'prptype'} eq 'kiwi' || (($ctx->{'repo'}->{'block'} || '') eq 'never')) {
       my ($pubstate, $pubdetails) = $ctx->publish();
       ($state, $details) = ($pubstate, $pubdetails) if $pubstate && $pubstate ne 'done';
     }
