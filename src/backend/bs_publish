@@ -914,6 +914,7 @@ sub updaterepo_reprepro {
             '--ignore=wrongdistribution',
             '--ignore=updatedarchall',
             '--ignore=unusedarch',
+            '--ignore=surprisingbinary',
             '-T', $type,
             '-C', $component,
             'include', $codename,
