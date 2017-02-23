@@ -912,7 +912,7 @@ sub updaterepo_reprepro {
 
           my @args = ('reprepro', '-b', $repo,
             '--ignore=wrongdistribution',
-            '--ignore=updatedarchall',
+            '--ignore=conflictingarchall',
             '--ignore=unusedarch',
             '--ignore=surprisingbinary',
             '-T', $type,
