@@ -295,4 +295,10 @@ our $publish_containers = [
 # public cloud uploader configuration
 # our $cloudupload_pubkey = "/etc/obs/cloudupload/_pubkey"; # default setting
 
+my $localconfig = "/etc/obs/BSConfig.local.pm";
+if (-r $localconfig) {
+  print STDERR "reading $localconfig...\n";
+  require $localconfig;
+}
+
 1;
