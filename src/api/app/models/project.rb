@@ -575,6 +575,12 @@ class Project < ApplicationRecord
     !errors.any?
   end
 
+  def builddep_allowed?(project_name)
+    allowbuilddeps.any? do |abd|
+      abd.name == project_name
+    end
+  end
+
   def update_from_xml!(xmlhash, force = nil)
     Project::UpdateFromXmlCommand.new(self).run(xmlhash, force)
   end
@@ -1430,9 +1436,10 @@ class Project < ApplicationRecord
       # ignore this for remote targets
       if target_project.class == Project &&
          target_project.disabled_for?('access', nil, nil) &&
-         !FlagHelper.xml_disabled_for?(request_data, 'access')
+         !FlagHelper.xml_disabled_for?(request_data, 'access') &&
+         !target_project.builddep_allowed?(project_name)
         return {
-          error: "Project links work only when both projects have same read access protection level: #{project_name} -> #{target_project_name}"
+          error: "Project #{project_name} depends on restricted project #{target_project_name}"
         }
       end
       logger.debug "Project #{project_name} link checked against #{target_project_name} projects permission"
@@ -1450,8 +1457,10 @@ class Project < ApplicationRecord
           begin
             target_project = Project.get_by_name(target_project_name)
             # user can access tprj, but backend would refuse to take binaries from there
-            if target_project.class == Project && target_project.disabled_for?('access', nil, nil)
-              return { error: "The current backend implementation is not using binaries from read access protected projects #{target_project_name}" }
+            if target_project.class == Project &&
+               target_project.disabled_for?('access', nil, nil) &&
+               !target_project.builddep_allowed?(project_name)
+              return { error: "Trying to use binaries from read access protected project #{target_project_name}" }
             end
           rescue UnknownObjectError
             return { error: "A project with the name #{target_project_name} does not exist. Please update the repository path elements." }
