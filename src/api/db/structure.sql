@@ -24,6 +24,14 @@ CREATE TABLE `ar_internal_metadata` (
   PRIMARY KEY (`key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
 
+CREATE TABLE `allowbuilddeps` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `db_project_id` int(11) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `index_allowbuilddeps_on_db_project_id_and_name` (`db_project_id`,`name`(191))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE `architectures` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(255) CHARACTER SET utf8 NOT NULL,
@@ -1456,6 +1464,7 @@ INSERT INTO `schema_migrations` (version) VALUES
 ('20190215131711'),
 ('20190328131711'),
 ('20190412130831'),
-('20190520130009');
+('20190520130009'),
+('20191011000000');
 
 

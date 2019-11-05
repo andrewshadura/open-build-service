@@ -115,6 +115,10 @@ our @flags = (
       [ 'access' => @disableenable ],
 );
 
+our @allowbuilddep = (
+      [[ 'allowbuilddep' => 'name' ]],
+);
+
 our @roles = (
      [[ 'person' =>
             'userid',
@@ -153,6 +157,7 @@ our $proj = [
 	    'project',
       ],
 	@roles,
+	@allowbuilddep,
 	$maintenance,
 	@flags,
       [ $repo ],
@@ -302,6 +307,7 @@ our $projpack = [
 	     [],
 	    'title',
 	    'description',
+	     @allowbuilddep,
 	    'config',
 	    'patternmd5',
 	 [[ 'link' =>
