@@ -54,10 +54,13 @@ xml.project(project_attributes) do
       repo.path_elements.includes(:link).each do |pe|
         if pe.link.remote_project_name.present?
           project_name = pe.link.project.name + ':' + pe.link.remote_project_name
-        else
+          xml_repository.path(:project => project_name, :repository => pe.link.name)
+        elsif pe.link.project
           project_name = pe.link.project.name
+          xml_repository.path(project: project_name, repository: pe.link.name)
+        else
+          xml_repository.path(project: "HIDDEN", repository: pe.link.name)
         end
-        xml_repository.path(project: project_name, repository: pe.link.name)
       end
       repo.repository_architectures.joins(:architecture).pluck('architectures.name').each do |arch|
         xml_repository.arch arch
