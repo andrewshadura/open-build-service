@@ -1,0 +1,78 @@
+FROM debian:bookworm-slim as server
+LABEL maintainer Andrej Shadura <andrew.shadura@collabora.co.uk>
+ENV LC_ALL=C.UTF-8
+ARG DEBIAN_FRONTEND=noninteractive
+ARG WORKDIR=/tmp/sources
+
+# Needs checking what’s actually needed
+RUN apt-get update \
+ && apt-get install -y \
+        apt-utils \
+        adduser \
+        ca-certificates \
+        curl \
+        diffutils \
+        dpkg-dev \
+        git \
+        locales \
+        libbssolv-perl \
+        libcompress-raw-zlib-perl \
+        libfile-sync-perl \
+        libio-compress-perl \
+        libjson-xs-perl \
+        libnet-ssleay-perl \
+        libsocket-msghdr-perl \
+        libtimedate-perl \
+        libxml-parser-perl \
+        libxml-simple-perl \
+        libxml-structured-perl \
+        libyaml-libyaml-perl \
+        make \
+        obs-build \
+        patch \
+        procps \
+        reprepro \
+        supervisor \
+        tzdata \
+        xzdec \
+        zstd
+
+COPY . $WORKDIR
+
+RUN make -C $WORKDIR/dist install
+RUN make -C $WORKDIR/src/backend install
+
+RUN rm -rf $WORKDIR
+
+RUN mkdir -p /etc/obs
+RUN cp /usr/lib/obs/server/BSConfig.pm.template /etc/obs/BSConfig.pm
+
+RUN ln -sf /etc/obs/BSConfig.pm /usr/lib/obs/server/BSConfig.pm
+RUN ln -sf /usr/lib/obs-build /usr/lib/obs/server/build
+
+# Sanity check: older versions of obs-build don’t have this file
+RUN test -f /usr/lib/obs/server/build/Build/Modules.pm
+
+COPY docker/services/backend/*.conf /etc/supervisor/conf.d/
+COPY docker/ /opt/
+
+VOLUME /etc/obs
+
+RUN /opt/configure-backend-user.sh
+
+RUN mkdir -p /srv/obs/log /srv/obs/run \
+ && chmod ug=rwxt /srv/obs/run \
+ && chown obsrun:obsrun -R /srv/obs
+
+VOLUME /srv/obs
+
+ENTRYPOINT /opt/backend-docker-entrypoint.sh
+
+# serviceserver
+EXPOSE 5152
+# reposerver
+EXPOSE 5252
+# srcserver
+EXPOSE 5352
+
+HEALTHCHECK --start-period=60s CMD curl --fail http://127.0.0.1:5252/

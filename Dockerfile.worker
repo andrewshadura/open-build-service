@@ -1,0 +1,26 @@
+ARG REGISTRY
+ARG TAG=latest
+FROM $REGISTRY/backend:$TAG
+
+LABEL maintainer Andrej Shadura <andrew.shadura@collabora.co.uk>
+ARG DEBIAN_FRONTEND=noninteractive
+
+# TODO: cleanup
+RUN apt-get update \
+ && apt-get install -y \
+        binutils \
+        cpio \
+        curl \
+        debootstrap \
+        fdisk \
+        libarchive-tools \
+        lsb-base \
+        lvm2 \
+        lzma \
+        psmisc \
+        rpm
+
+RUN rm /etc/supervisor/conf.d/*
+COPY docker/services/worker/*.conf /etc/supervisor/conf.d/
+
+ENTRYPOINT /opt/worker-docker-entrypoint.sh

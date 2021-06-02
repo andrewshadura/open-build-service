@@ -199,6 +199,7 @@ default: &default
 
 production:
   <<: *default
+  memcached_host: cache
 
 test:
   <<: *default
@@ -209,4 +210,3 @@ development:
   <<: *default
   source_host: backend
   memcached_host: cache
-

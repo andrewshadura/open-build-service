@@ -1,0 +1,11 @@
+[program:scheduler@@ARCH@]
+command=/usr/lib/obs/server/bs_sched @ARCH@
+directory=/usr/lib/obs/server/
+stdout_logfile=/srv/obs/log/scheduler_@ARCH@.log
+redirect_stderr=true
+autostart=True
+priority=1
+stopsignal=KILL
+killasgroup=true
+stopasgroup=true
+

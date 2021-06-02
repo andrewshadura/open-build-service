@@ -1,0 +1,49 @@
+ARG REGISTRY
+ARG TAG=latest
+FROM $REGISTRY/frontend-base:$TAG as base
+
+ARG REGISTRY
+ARG TAG=latest
+FROM $REGISTRY/frontend-base:$TAG
+ARG WORKDIR=/tmp/sources
+ARG INSTALLDIR=/obs
+
+ADD src/api/ $INSTALLDIR/src/api/
+
+COPY --from=base $INSTALLDIR/src/api/Gemfile $INSTALLDIR/src/api/Gemfile.lock $INSTALLDIR/src/api/
+
+WORKDIR $INSTALLDIR/src/api
+
+# Add local Bootstrap 3 copy for error pages
+RUN install -D -t public/css /usr/share/javascript/bootstrap/css/bootstrap.min.css
+
+RUN ls -la
+
+ARG BUNDLE_BUILD__SASSC=--disable-march-tune-native
+ARG NOKOGIRI_USE_SYSTEM_LIBRARIES=1
+
+RUN bundle install --jobs=$(nproc) --retry=3 \
+ && rm -rf /var/lib/gems/*/cache
+
+ENV RAILS_ENV=production
+ENV RAILS_LOG_TO_STDOUT=true
+
+RUN echo nonce > config/secret.key \
+ && DATABASE_URL=mysql2://localhost/noncedb bundle exec rake assets:precompile RAILS_GROUPS=assets \
+ && rm config/secret.key
+
+RUN bundle config --local without test:assets:development
+
+RUN sed -i 's|^#!/usr/bin/ruby.ruby.*$|#!/usr/bin/ruby|' bin/* script/*
+RUN sed -i -e /mailcatcher:/d -e /web:/d Procfile
+
+COPY docker/ /opt/
+
+RUN /opt/configure-frontend-user.sh
+RUN mkdir -p log tmp db/sphinx \
+ && chown -R frontend /obs
+
+ENTRYPOINT /opt/frontend-docker-entrypoint.sh
+EXPOSE 3000
+
+HEALTHCHECK --start-period=60s CMD curl -f http://127.0.0.1:3000/

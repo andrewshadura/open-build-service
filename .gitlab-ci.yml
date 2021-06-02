@@ -1,0 +1,62 @@
+stages:
+  - docker
+  - test
+
+.build-docker-image:
+  stage: docker
+  tags:
+    - lightweight
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [""]
+  script:
+    - |
+      cat << EOF > /kaniko/.docker/config.json
+      {
+        "auths":{
+          "$CI_REGISTRY": {
+            "username":"$CI_REGISTRY_USER",
+            "password":"$CI_REGISTRY_PASSWORD"
+          }
+        }
+      }
+      EOF
+    - >
+      /kaniko/executor
+      --context $CI_PROJECT_DIR
+      --dockerfile $CI_PROJECT_DIR/Dockerfile.$image
+      --destination $CI_REGISTRY_IMAGE/$image:$CI_COMMIT_REF_SLUG
+      --build-arg REGISTRY=$CI_REGISTRY_IMAGE
+      --build-arg TAG=$CI_COMMIT_REF_SLUG
+      --single-snapshot
+    - echo Pushed $CI_REGISTRY_IMAGE/$image:$CI_COMMIT_REF_SLUG
+
+frontend-base:
+  extends: .build-docker-image
+  only:
+    changes:
+      - Dockerfile.frontend-base
+      - src/api/Gemfile
+      - src/api/Gemfile.lock
+  variables:
+    image: frontend-base
+
+frontend:
+  extends: .build-docker-image
+  needs:
+    - job: frontend-base
+      optional: true
+  variables:
+    image: frontend
+
+backend:
+  extends: .build-docker-image
+  variables:
+    image: backend
+
+worker:
+  extends: .build-docker-image
+  needs:
+    - job: backend
+  variables:
+    image: worker
