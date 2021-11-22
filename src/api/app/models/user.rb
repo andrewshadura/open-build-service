@@ -233,6 +233,17 @@ class User < ApplicationRecord
 
         return user
       end
+
+      username = auth['username'] || auth['nickname']
+      if username.include? '@'
+        user = find_by_email(username)
+
+        if user
+          user.mark_login!
+
+          return user
+        end
+      end
     end
   end
 
