@@ -1029,6 +1029,26 @@ class ProjectTest < ActiveSupport::TestCase
     assert_equal expected, actual
   end
 
+  test 'returns no error if repository access is disabled but project is allowed to build-depend' do
+    User.session = users(:Iggy)
+    project = projects(:home_Iggy)
+    project.allowbuilddeps.create(name: 'allowed_project')
+    flag = project.add_flag('access', 'disable')
+    flag.save
+    project.save
+
+    xml = <<-XML.strip_heredoc
+      <project name='allowed_project'>
+        <title>Up-to-date project</title>
+        <description>the description</description>
+        <repository><path project='home:Iggy'></path></repository>
+      </project>
+    XML
+
+    actual = Project.validate_repository_xml_attribute(Xmlhash.parse(xml), 'allowed_project')
+    assert_equal({}, actual)
+  end
+
   test 'returns no error if target project equals project' do
     User.session = users(:Iggy)
     project = projects(:home_Iggy)
