@@ -15,11 +15,11 @@ workflows:
       - path-filtering/filter:
           name: Define dynamic CI pipeline
           mapping: |
-            (dist|contrib)/.* run-root-rubocop true
-            src/backend/.* run-backend-tests true
-            src/api/app/(views|components)/.* run-haml-linter true
-            src/api/db/.* run-migrations-tests true
-            src/api/app/assets/javascripts/.* run-javascripts-linter true
-            src/api/public/apidocs-new/.* run-apidocs-linter true
+            (dist|contrib)/.* run-root-rubocop false
+            src/backend/.* run-backend-tests false
+            src/api/app/(views|components)/.* run-haml-linter false
+            src/api/db/.* run-migrations-tests false
+            src/api/app/assets/javascripts/.* run-javascripts-linter false
+            src/api/public/apidocs-new/.* run-apidocs-linter false
           base-revision: master
           config-path: .circleci/conditional_config.yml
