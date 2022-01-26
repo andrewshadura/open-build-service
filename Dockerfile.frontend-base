@@ -33,6 +33,7 @@ RUN apt-get update \
         ruby-bundler \
         ruby-ffi \
         sphinxsearch \
+        python3-yaml \
         supervisor \
         time \
         tzdata

@@ -10,7 +10,7 @@ chmod a+rwxt /tmp
 
 /opt/configure-app.sh
 /opt/configure-db.sh
-#/opt/configure-sso.py
+/opt/configure-sso.py
 
 : ${OBS_FRONTEND_WORKERS:=4}
 export OBS_FRONTEND_WORKERS
