@@ -36,6 +36,9 @@ frontend-base:
   only:
     changes:
       - Dockerfile.frontend-base
+      - src/api/app/assets
+      - src/api/public
+      - src/api/vendor
       - src/api/Gemfile
       - src/api/Gemfile.lock
   variables:

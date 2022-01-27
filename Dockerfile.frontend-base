@@ -1,7 +1,10 @@
-FROM debian:bookworm-slim as frontend-base
+ARG INSTALLDIR=/obs
+ARG DEBIAN_RELEASE=bookworm
+
+FROM debian:$DEBIAN_RELEASE-slim as base
 ENV LC_ALL=C.UTF-8
 ARG DEBIAN_FRONTEND=noninteractive
-ARG INSTALLDIR=/obs
+ARG INSTALLDIR
 
 RUN apt-get update \
  && apt-get install -y \
@@ -39,29 +42,50 @@ RUN apt-get update \
         libxslt1-dev \
         zlib1g-dev
 
-RUN gem install --no-format-executable brakeman --version 5.0.2 --no-doc
-RUN gem install sassc --version 2.0.1 --no-doc
-
 ADD src/api/Gemfile src/api/Gemfile.lock $INSTALLDIR/src/api/
 WORKDIR $INSTALLDIR/src/api/
 
-RUN sed -e "/gem 'puma'/d" Gemfile > Gemfile.new; \
-    echo "gem 'puma'" >> Gemfile.new; \
-    diff -u Gemfile Gemfile.new; \
-    mv Gemfile.new Gemfile
-
+# Drop the hard-coded Bundler version so we can use the distro-provided Bundler
 RUN sed -e '/BUNDLED WITH/,+1 d' Gemfile.lock > Gemfile.lock.new; \
     diff -u Gemfile.lock Gemfile.lock.new; \
     mv Gemfile.lock.new Gemfile.lock
 
-ARG BUNDLE_BUILD__SASSC=--disable-march-tune-native
 ARG NOKOGIRI_USE_SYSTEM_LIBRARIES=1
 
-RUN bundle config --global without development:test
+RUN bundle config --global without assets:development:test
 
 RUN bundle install --jobs=$(nproc) --retry=3 \
  && rm -rf \
     /var/lib/gems/*/cache/ \
     /var/lib/gems/*/test/ \
     /var/lib/gems/*/extensions/*/*/*/gem_make.out \
-    /var/lib/gems/*/extensions/*/*/*/*.log \
+    /var/lib/gems/*/extensions/*/*/*/*.log
+
+ENV RAILS_ENV=production
+ENV RAILS_LOG_TO_STDOUT=true
+
+FROM base as asset-builder
+ARG INSTALLDIR
+
+ADD src/api/ $INSTALLDIR/src/api/
+
+COPY --from=base $INSTALLDIR/src/api/Gemfile $INSTALLDIR/src/api/Gemfile.lock $INSTALLDIR/src/api/
+
+ARG BUNDLE_BUILD__SASSC=--disable-march-tune-native
+ARG NOKOGIRI_USE_SYSTEM_LIBRARIES=1
+
+RUN gem install --no-format-executable brakeman --version 5.0.2 --no-doc
+RUN gem install sassc --version 2.0.1 --no-doc
+
+RUN bundle config --local without development:test
+
+RUN bundle install --jobs=$(nproc) --retry=3
+
+RUN echo nonce > config/secret.key \
+ && DATABASE_URL=mysql2://localhost/noncedb bundle exec rake assets:precompile RAILS_GROUPS=assets
+
+FROM base
+ARG INSTALLDIR
+
+# Here, we end up with an image with runtime dependencies only, Gemfiles and pre-built assets
+COPY --from=asset-builder $INSTALLDIR/src/api/public/assets  $INSTALLDIR/src/api/public/assets

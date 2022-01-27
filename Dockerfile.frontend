@@ -10,7 +10,16 @@ ARG INSTALLDIR=/obs
 
 ADD src/api/ $INSTALLDIR/src/api/
 
-COPY --from=base $INSTALLDIR/src/api/Gemfile $INSTALLDIR/src/api/Gemfile.lock $INSTALLDIR/src/api/
+# Move Puma from development section to production
+RUN sed -e "/gem 'puma'/d" Gemfile > Gemfile.new; \
+    echo "gem 'puma'" >> Gemfile.new; \
+    diff -u Gemfile Gemfile.new; \
+    mv Gemfile.new Gemfile
+
+# The base image only has runtime dependencies, Gemfiles and pre-built assets
+# The assets and the Gemfile.lock have been overwritten by the ADD command above, restore them.
+COPY --from=base $INSTALLDIR/src/api/Gemfile.lock  $INSTALLDIR/src/api/
+COPY --from=base $INSTALLDIR/src/api/public/assets $INSTALLDIR/src/api/public/assets
 
 WORKDIR $INSTALLDIR/src/api
 
@@ -19,20 +28,10 @@ RUN install -D -t public/css /usr/share/javascript/bootstrap/css/bootstrap.min.c
 
 RUN ls -la
 
-ARG BUNDLE_BUILD__SASSC=--disable-march-tune-native
 ARG NOKOGIRI_USE_SYSTEM_LIBRARIES=1
 
 RUN bundle install --jobs=$(nproc) --retry=3 \
  && rm -rf /var/lib/gems/*/cache
-
-ENV RAILS_ENV=production
-ENV RAILS_LOG_TO_STDOUT=true
-
-RUN echo nonce > config/secret.key \
- && DATABASE_URL=mysql2://localhost/noncedb bundle exec rake assets:precompile RAILS_GROUPS=assets \
- && rm config/secret.key
-
-RUN bundle config --local without test:assets:development
 
 RUN sed -i 's|^#!/usr/bin/ruby.ruby.*$|#!/usr/bin/ruby|' bin/* script/*
 RUN sed -i -e /mailcatcher:/d -e /web:/d Procfile
