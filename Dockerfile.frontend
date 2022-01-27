@@ -1,14 +1,19 @@
 ARG REGISTRY
 ARG TAG=latest
+ARG FRONTEND_UID=999
 FROM $REGISTRY/frontend-base:$TAG as base
 
-ARG REGISTRY
-ARG TAG=latest
-FROM $REGISTRY/frontend-base:$TAG
+FROM base
 ARG WORKDIR=/tmp/sources
 ARG INSTALLDIR=/obs
 
-ADD src/api/ $INSTALLDIR/src/api/
+COPY docker/ /opt/
+
+RUN /opt/configure-frontend-user.sh "$FRONTEND_UID"
+RUN mkdir -p log tmp db/sphinx \
+ && chown -R frontend $INSTALLDIR
+
+ADD --chown=frontend:frontend src/api/ $INSTALLDIR/src/api/
 
 # Move Puma from development section to production
 RUN sed -e "/gem 'puma'/d" Gemfile > Gemfile.new; \
@@ -26,8 +31,6 @@ WORKDIR $INSTALLDIR/src/api
 # Add local Bootstrap 3 copy for error pages
 RUN install -D -t public/css /usr/share/javascript/bootstrap/css/bootstrap.min.css
 
-RUN ls -la
-
 ARG NOKOGIRI_USE_SYSTEM_LIBRARIES=1
 
 RUN bundle install --jobs=$(nproc) --retry=3 \
@@ -35,12 +38,6 @@ RUN bundle install --jobs=$(nproc) --retry=3 \
 
 RUN sed -i 's|^#!/usr/bin/ruby.ruby.*$|#!/usr/bin/ruby|' bin/* script/*
 RUN sed -i -e /mailcatcher:/d -e /web:/d Procfile
-
-COPY docker/ /opt/
-
-RUN /opt/configure-frontend-user.sh
-RUN mkdir -p log tmp db/sphinx \
- && chown -R frontend /obs
 
 ENTRYPOINT /opt/frontend-docker-entrypoint.sh
 EXPOSE 3000
