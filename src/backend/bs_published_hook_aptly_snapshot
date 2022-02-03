@@ -1,0 +1,115 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+
+# This script can be used as reference for creating snapshots on OBS
+# publishing.
+# This perl script will create and publish snapshots for all the related
+# distributions suffixes, e.g: `v2022`, `v2022-security`, `v2022-updates`.
+
+BEGIN {
+  my ($wd) = $0 =~ m-(.*)/- ;
+  $wd ||= '.';
+  unshift @INC,  "$wd/build";
+  unshift @INC,  "$wd";
+}
+
+use BSAptly;
+use Getopt::Std;
+use POSIX qw(strftime);
+
+use vars qw ($opt_t);
+
+sub aptly_distro_snapshot {
+  # Create snapshots for all the repositories in an aptly prefix/distribution.
+  my ($prefix, $distribution, $timestamp) = @_;
+  my $distro_config = BSAptly::aptly_distro_get_config($prefix, $distribution);
+  my $distro_components = $distro_config->{'components'};
+
+  foreach my $component (keys %$distro_components) {
+    my $component_config = $distro_components->{$component};
+    my $projid = $component_config->{'project'};
+    my $repoid = $component_config->{'repository'};
+    my $obs_proj = BSAptly::obs_get_project($projid);
+    my $obs_repo = BSAptly::obs_get_repo($projid, $repoid);
+
+    next unless $obs_repo;
+
+    BSAptly::aptly_snapshot_create($component_config->{'project'}, $component_config->{'repository'}, $timestamp);
+  }
+}
+
+sub aptly_publish_snapshot {
+  # Publish snapshots for the repositories in an aptly prefix/distribution.
+  my ($prefix, $distribution, $timestamp) = @_;
+  my %archs;
+  my @components;
+  my @snapshots;
+
+  my $distro_config = BSAptly::aptly_distro_get_config($prefix, $distribution);
+  my $distro_components = $distro_config->{'components'};
+
+  foreach my $component (keys %$distro_components) {
+    my $component_config = $distro_components->{$component};
+    my $projid = $component_config->{'project'};
+    my $repoid = $component_config->{'repository'};
+    my $obs_proj = BSAptly::obs_get_project($projid);
+    my $obs_repo = BSAptly::obs_get_repo($projid, $repoid);
+
+    next unless $obs_repo;
+    next unless BSAptly::aptly_snapshot_exists($projid, $repoid, $timestamp);
+
+    push @components, $component;
+    push @snapshots, "$projid/$repoid/$timestamp";
+    foreach my $arch (@{ $obs_repo->{'arch'} }) {
+      if (BSUtil::enabled($repoid, $obs_proj->{'publish'}, 1, $arch)) {
+        $archs{$arch} = 1;
+      }
+    }
+  }
+
+  if (!%archs) {
+    return 0;
+  }
+
+  my $gpgkey = $distro_config->{'gpg-key'} || $BSConfig::aptly_defconfig->{'gpg-key'} || "";
+
+  my @args = ('publish', 'snapshot',
+    "-architectures=".join(',', map { Build::Deb::basearch($_) } keys %archs),
+    "-distribution=$distribution",
+    "-component=".join(',', @components),
+    "-gpg-key=$gpgkey",
+    @snapshots, "$prefix/snapshots/$timestamp");
+  return BSAptly::aptly_exec(@args);
+}
+
+sub distribution_basename {
+  my ($distribution) = @_;
+  my ($basename, $suffix) = $distribution =~ /(.*)-(.*)/;
+  return $basename || $distribution;
+}
+
+sub do_distro_snapshot {
+  my ($prefix, $distribution, $timestamp) = @_;
+  my $distro_config = BSAptly::aptly_distro_get_config($prefix, $distribution);
+  die("can't find aptly configuration for distribution $prefix/$distribution\n") if !$distro_config;
+  aptly_distro_snapshot($prefix, $distribution, $timestamp);
+  aptly_publish_snapshot($prefix, $distribution, $timestamp);
+}
+
+getopts('t:');
+
+my ($projid, $repoid) = $ARGV[0] =~ /(.*)\/(.*)/;
+my @suffixes = ('', '-security', '-updates');
+my $timestamp = $opt_t || strftime "%Y%m%dT%H%M%SZ", gmtime;
+
+die("bad project/repo parameter: $projid, $repoid\n") if !$projid || !$repoid;
+
+my $distro_config = BSAptly::aptly_repo_get_config($projid, $repoid);
+die("can't find related aptly distribution for $projid/$repoid\n") if !$distro_config;
+my $prefix = $distro_config->{'prefix'};
+my $distribution = distribution_basename($distro_config->{'distribution'});
+
+foreach my $suffix (@suffixes) {
+  do_distro_snapshot($prefix, $distribution.$suffix, $timestamp);
+}

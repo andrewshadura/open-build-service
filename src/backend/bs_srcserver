@@ -80,6 +80,8 @@ use BSSrcServer::Registry;
 use BSSrcServer::Signkey;
 use BSSrcServer::Notify;
 
+use BSAptly;
+
 # configure modules
 $BSSrcServer::Projlink::getrev       = \&getrev;
 $BSSrcServer::Projlink::findpackages = \&findpackages;
@@ -1906,6 +1908,12 @@ sub putproject {
   }
 
   $proj = BSRevision::readproj_local($projid);
+
+  my $aptly_config = BSAptly::aptly_project_get_config($projid);
+  if ($aptly_config) {
+    BSAptly::aptly_putproject($proj, $oldproj, $aptly_config);
+  }
+
   return ($proj, $BSXML::proj);
 }
 
@@ -1914,6 +1922,8 @@ sub delproject {
 
   $cgi->{'comment'} ||= 'project was deleted';
   die("404 project '$projid' does not exist\n") unless -e "$projectsdir/$projid.xml";
+
+  my $oldproj = BSRevision::readproj_local($projid, 1);
 
   # add delete commit to both source and meta
   BSRevision::addrev_local_replace($cgi, $projid, undef);
@@ -1951,6 +1961,12 @@ sub delproject {
     }
   };
   warn($@) if $@;
+
+  my $aptly_config = BSAptly::aptly_project_get_config($projid);
+  if ($aptly_config) {
+    BSAptly::aptly_delproject($oldproj, $aptly_config);
+  }
+
   return undef;
 }
 

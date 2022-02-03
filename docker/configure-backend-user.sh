@@ -23,3 +23,6 @@ fi
 
 mkdir -p /srv/obs/repos
 chown obsrun:obsrun /srv/obs/repos
+
+mkdir -p /srv/obs/aptly
+chown obsrun:obsrun /srv/obs/aptly

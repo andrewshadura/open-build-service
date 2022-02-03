@@ -8,6 +8,7 @@ ARG WORKDIR=/tmp/sources
 RUN apt-get update \
  && apt-get install -y \
         apt-utils \
+        aptly \
         adduser \
         ca-certificates \
         curl \
@@ -67,6 +68,7 @@ COPY docker/ /opt/
 
 VOLUME /etc/obs
 
+COPY docker/services/aptly/aptly.conf /etc/obs/aptly.conf
 RUN /opt/configure-backend-user.sh
 
 RUN mkdir -p /srv/obs/log /srv/obs/run \

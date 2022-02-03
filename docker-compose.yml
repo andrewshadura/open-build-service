@@ -20,11 +20,14 @@ services:
     hostname: backend
     restart: unless-stopped
     volumes:
+      - aptly-storage:/srv/obs/aptly
       - backend-storage:/srv/obs
       - backend-logs:/srv/obs/log
     environment:
       OBS_FRONTEND_HOST: frontend
       OBS_BACKEND_HOST: backend
+    ports:
+      - "127.0.0.1:8080:8080"
 
   frontend:
     image: registry.gitlab.collabora.com/obs/open-build-service/frontend
@@ -68,6 +71,7 @@ services:
       OBS_WORKER_INSTANCES: 1
 
 volumes:
+  aptly-storage:
   backend-storage:
   backend-logs:
   frontend-logs:
