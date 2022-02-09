@@ -9,6 +9,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
  && apt-get install -y \
         binutils \
+        binfmt-support \
         cpio \
         curl \
         debootstrap \
@@ -18,6 +19,7 @@ RUN apt-get update \
         lvm2 \
         lzma \
         psmisc \
+        qemu-user-static \
         rpm
 
 RUN rm /etc/supervisor/conf.d/*
