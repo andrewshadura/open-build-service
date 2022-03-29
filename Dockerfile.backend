@@ -12,6 +12,7 @@ RUN apt-get update \
         adduser \
         ca-certificates \
         curl \
+        devscripts \
         diffutils \
         dpkg-dev \
         git \
