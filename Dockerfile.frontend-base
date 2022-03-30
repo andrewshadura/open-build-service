@@ -23,8 +23,8 @@ RUN apt-get update \
         npm \
         patch \
         pkgconf \
-        ruby \
-        ruby-dev \
+        ruby2.7 \
+        ruby2.7-dev \
         ruby-bundler \
         ruby-ffi \
         ruby-foreman \
@@ -45,8 +45,15 @@ RUN apt-get update \
 ADD src/api/Gemfile src/api/Gemfile.lock $INSTALLDIR/src/api/
 WORKDIR $INSTALLDIR/src/api/
 
+# Force Ruby 2.7 no matter what
+RUN for bin in $(dpkg -L ruby | grep /usr/bin/); do \
+      ln -sf ${bin}2.7 $bin; \
+    done
+RUN echo "ruby '~> 2.7.0'" >> Gemfile
+
 # Drop the hard-coded Bundler version so we can use the distro-provided Bundler
-RUN sed -e '/BUNDLED WITH/,+1 d' Gemfile.lock > Gemfile.lock.new; \
+RUN sed -e '/BUNDLED WITH/,+1 d' Gemfile.lock \
+        -e 's/^  ruby$/  ruby '"$(ruby2.7 -v | cut -d' ' -f2)"'/' > Gemfile.lock.new; \
     diff -u Gemfile.lock Gemfile.lock.new; \
     mv Gemfile.lock.new Gemfile.lock
 
