@@ -63,3 +63,62 @@ worker:
     - job: backend
   variables:
     image: worker
+
+.boot-instance:
+  image: debian:bookworm-slim
+  tags:
+    - heavyweight
+  services:
+    - name: docker:stable-dind
+      alias: docker
+  variables:
+    DOCKER_DRIVER: overlay2
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+    COMPOSE_OVERLAY: |
+      version: '2.1'
+      services:
+        frontend:
+          image: $CI_REGISTRY_IMAGE/frontend:$TAG_SHA
+          ports:
+            - "80:3000"
+        backend:
+          image: $CI_REGISTRY_IMAGE/backend:$TAG_SHA
+          ports:
+            - "5252:5252"
+        worker:
+          image: $CI_REGISTRY_IMAGE/worker:$TAG_SHA
+  before_script:
+    - apt update && apt install -y --no-install-recommends
+        curl
+        docker-compose
+        docker.io
+        osc
+        wait-for-it
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+    - docker info
+    - echo "$COMPOSE_OVERLAY" > docker-compose.override.yml
+    - |
+      cat << EOF > ~/.oscrc
+      [general]
+      apiurl = http://docker
+      [http://docker]
+      user = Admin
+      pass = opensuse
+      EOF
+    - docker-compose up -d
+    - wait-for-it docker:5252 -s --timeout=180 -- echo "The OBS backend is up"
+    - wait-for-it docker:80 -s --timeout=180 -- echo "The OBS frontend is up"
+  after_script:
+    - docker-compose logs > docker-compose.txt
+  artifacts:
+    paths:
+      - docker-compose.txt
+    when: always
+
+integration-test:
+  stage: test
+  extends: .boot-instance
+  script:
+    - curl http://docker/
+    - osc ls /
