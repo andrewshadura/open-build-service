@@ -1,10 +1,15 @@
 ARG INSTALLDIR=/obs
-ARG DEBIAN_RELEASE=bookworm
+ARG DEBIAN_RELEASE=bullseye
 
 FROM debian:$DEBIAN_RELEASE-slim as base
 ENV LC_ALL=C.UTF-8
 ARG DEBIAN_FRONTEND=noninteractive
 ARG INSTALLDIR
+ARG DEBIAN_RELEASE
+
+# Enable backports for sphinxsearch
+RUN [ "$DEBIAN_RELEASE" != bullseye ] || \
+    echo "deb http://deb.debian.org/debian bullseye-backports main" > /etc/apt/sources.list.d/backports.list
 
 RUN apt-get update \
  && apt-get install -y \
