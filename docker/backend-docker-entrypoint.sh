@@ -17,6 +17,16 @@ mkdir -p /srv/obs/log /srv/obs/run
 chmod ug=rwxt /srv/obs/run
 chown obsrun:obsrun /srv/obs/*
 
+export GNUPGHOME=/srv/obs/gnupg
+
+if [ ! -d "$GNUPGHOME" ] || [ ! -f "$GNUPGHOME/trustdb.gpg" ]
+then
+    echo "GnuPG homedir is missing!"
+    mkdir -m 0700 "$GNUPGHOME"
+    chown obsrun:obsrun "$GNUPGHOME"
+    runuser -u obsrun -- gpg --list-keys
+fi
+
 if [ ! -f /etc/obs/BSConfig.pm ]
 then
     echo "OBS backend configuration not found, starting from scratch"
