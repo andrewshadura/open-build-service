@@ -28,7 +28,6 @@ RUN apt-get update \
         libxml-structured-perl \
         libyaml-libyaml-perl \
         make \
-        obs-build \
         patch \
         procps \
         reprepro \
@@ -41,6 +40,8 @@ COPY . $WORKDIR
 
 RUN make -C $WORKDIR/dist install
 RUN make -C $WORKDIR/src/backend install
+RUN make -C $WORKDIR/src/backend/build install
+RUN ln -sf /usr/lib/obs-build /usr/lib/obs/server/build
 
 RUN rm -rf $WORKDIR
 
@@ -48,7 +49,6 @@ RUN mkdir -p /etc/obs
 RUN cp /usr/lib/obs/server/BSConfig.pm.template /etc/obs/BSConfig.pm
 
 RUN ln -sf /etc/obs/BSConfig.pm /usr/lib/obs/server/BSConfig.pm
-RUN ln -sf /usr/lib/obs-build /usr/lib/obs/server/build
 
 # Sanity check: older versions of obs-build don’t have this file
 RUN test -f /usr/lib/obs/server/build/Build/Modules.pm
