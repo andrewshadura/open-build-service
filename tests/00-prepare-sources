@@ -1,0 +1,5 @@
+#!/bin/sh -e
+
+sed 's/^deb /deb-src /' /etc/apt/sources.list > /etc/apt/sources.list.d/sources.list
+
+apt-get update

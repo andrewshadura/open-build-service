@@ -100,7 +100,9 @@ worker:
         curl
         docker-compose
         docker.io
+        dpkg-dev
         osc
+        osc-plugin-dput
         wait-for-it
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
     - docker info
@@ -116,6 +118,7 @@ worker:
     - docker-compose up -d
     - wait-for-it docker:5252 -s --timeout=180 -- echo "The OBS backend is up"
     - wait-for-it docker:80 -s --timeout=180 -- echo "The OBS frontend is up"
+    - PATH=$PWD/tests/scripts:$PATH
   after_script:
     - docker-compose logs > docker-compose.txt
   artifacts:
@@ -129,6 +132,7 @@ integration-test:
   script:
     - curl http://docker/
     - osc ls /
+    - run-parts tests
 
 tag-latest-docker-image:
   stage: tag

@@ -1,0 +1,30 @@
+#!/bin/sh
+
+src_prj_name=$1
+dst_prj_name=$2
+prj_repo=${3:-main}
+prj_arch=${4:-x86_64}
+
+get_prjmeta() {
+	cat << EOF
+<project name="$dst_prj_name">
+  <repository name="$prj_repo">
+    <path project="Debian:$src_prj_name:main" repository="$prj_repo"/>
+    <arch>$prj_arch</arch>
+  </repository>
+</project>
+EOF
+}
+
+get_prjconf() {
+	cat << EOF
+Repotype: debian
+type: dsc
+release: b<B_CNT>
+buildengine: debootstrap
+EOF
+}
+
+echo "Creating OBS Project: $dst_prj_name"
+get_prjmeta | osc meta prj "$dst_prj_name" -F -
+get_prjconf | osc meta prjconf "$dst_prj_name" -F -

@@ -1,0 +1,22 @@
+#!/bin/sh -e
+
+create-debian-project bullseye
+
+create-project bullseye bullseye-derivative
+
+dir="$(mktemp -d)"
+
+cd "$dir"
+
+apt-get source --download-only dash
+
+osc dput bullseye-derivative *.dsc
+
+cd "$OLDPWD"
+
+if ! wait-for-pkg bullseye-derivative dash main
+then
+	# DoD didn't wake up, restart the backend and try again
+	docker-compose exec -T backend supervisorctl restart all
+	wait-for-pkg bullseye-derivative dash main
+fi
