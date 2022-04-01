@@ -1,8 +1,10 @@
 stages:
   - docker
   - test
+  - tag
 
 variables:
+  TAG_SHA: $CI_COMMIT_SHORT_SHA-P$CI_PIPELINE_ID
   GIT_SUBMODULE_STRATEGY: recursive
 
 .build-docker-image:
@@ -28,11 +30,13 @@ variables:
       /kaniko/executor
       --context $CI_PROJECT_DIR
       --dockerfile $CI_PROJECT_DIR/Dockerfile.$image
+      --destination $CI_REGISTRY_IMAGE/$image:$TAG_SHA
       --destination $CI_REGISTRY_IMAGE/$image:$CI_COMMIT_REF_SLUG
       --build-arg REGISTRY=$CI_REGISTRY_IMAGE
       --build-arg TAG=$CI_COMMIT_REF_SLUG
       --single-snapshot
     - echo Pushed $CI_REGISTRY_IMAGE/$image:$CI_COMMIT_REF_SLUG
+              and $CI_REGISTRY_IMAGE/$image:$TAG_SHA
 
 frontend-base:
   extends: .build-docker-image
@@ -125,3 +129,25 @@ integration-test:
   script:
     - curl http://docker/
     - osc ls /
+
+tag-latest-docker-image:
+  stage: tag
+  tags:
+    - lightweight
+  image: buildah/buildah
+  variables:
+    AUTH: $CI_REGISTRY_USER:$CI_REGISTRY_PASSWORD
+    TAG_NEW: latest
+  script:
+    - |
+      for image in frontend backend worker
+      do
+        echo Tagging "$CI_REGISTRY_IMAGE/$image:$TAG_SHA"
+        skopeo copy --src-creds "$AUTH" --dest-creds "$AUTH" \
+            "docker://$CI_REGISTRY_IMAGE/$image:$TAG_SHA" \
+            "docker://$CI_REGISTRY_IMAGE/$image:$TAG_NEW"
+        echo Tagged "$CI_REGISTRY_IMAGE/$image:$TAG_NEW"
+      done
+  only:
+    variables:
+      - $CI_DEFAULT_BRANCH == $CI_COMMIT_BRANCH
