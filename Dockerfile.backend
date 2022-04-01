@@ -1,4 +1,4 @@
-FROM debian:bookworm-slim as server
+FROM debian:bullseye-slim as server
 LABEL maintainer Andrej Shadura <andrew.shadura@collabora.co.uk>
 ENV LC_ALL=C.UTF-8
 ARG DEBIAN_FRONTEND=noninteractive
