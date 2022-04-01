@@ -37,7 +37,7 @@ RUN bundle install --jobs=$(nproc) --retry=3 \
  && rm -rf /var/lib/gems/*/cache
 
 RUN sed -i 's|^#!/usr/bin/ruby.ruby.*$|#!/usr/bin/ruby|' bin/* script/*
-RUN sed -i -e /mailcatcher:/d -e /web:/d Procfile
+COPY docker/services/frontend/*.conf /etc/supervisor/conf.d/
 
 ENTRYPOINT /opt/frontend-docker-entrypoint.sh
 EXPOSE 3000

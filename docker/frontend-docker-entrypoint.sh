@@ -10,7 +10,7 @@ chown -R frontend log tmp
 /opt/configure-db.sh
 #/opt/configure-sso.py
 
-sed -i -e /web:/d Procfile
-echo "web: bundle exec puma -p 3000 -w ${OBS_FRONTEND_WORKERS:-4}" >> Procfile
+: ${OBS_FRONTEND_WORKERS:=4}
+export OBS_FRONTEND_WORKERS
 
-runuser -u frontend foreman start
+exec /usr/bin/supervisord -n

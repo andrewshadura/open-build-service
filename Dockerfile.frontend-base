@@ -32,7 +32,6 @@ RUN apt-get update \
         ruby2.7-dev \
         ruby-bundler \
         ruby-ffi \
-        ruby-foreman \
         sphinxsearch \
         supervisor \
         time \
