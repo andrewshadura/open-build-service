@@ -1,0 +1,7 @@
+#!/usr/bin/perl
+
+require "/etc/obs/BSConfig.pm";
+
+my $key = $ARGV[0];
+
+print ${"BSConfig::$key"};
