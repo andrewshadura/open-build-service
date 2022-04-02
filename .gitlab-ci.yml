@@ -95,6 +95,22 @@ worker:
             - "5252:5252"
         worker:
           image: $CI_REGISTRY_IMAGE/worker:$TAG_SHA
+      volumes:
+        backend-logs:
+          driver_opts:
+            type: none
+            o: bind
+            device: './logs/backend'
+        frontend-logs:
+          driver_opts:
+            type: none
+            o: bind
+            device: './logs/frontend'
+        worker-logs:
+          driver_opts:
+            type: none
+            o: bind
+            device: './logs/worker'
   before_script:
     - apt update && apt install -y --no-install-recommends
         curl
@@ -107,6 +123,7 @@ worker:
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
     - docker info
     - echo "$COMPOSE_OVERLAY" > docker-compose.override.yml
+    - mkdir -p logs/backend logs/frontend logs/worker
     - |
       cat << EOF > ~/.oscrc
       [general]
@@ -124,6 +141,7 @@ worker:
   artifacts:
     paths:
       - docker-compose.txt
+      - logs/*/*.log
     when: always
 
 integration-test:
