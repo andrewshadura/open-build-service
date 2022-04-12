@@ -15,12 +15,6 @@ RUN mkdir -p log tmp db/sphinx \
 
 ADD --chown=frontend:frontend src/api/ $INSTALLDIR/src/api/
 
-# Move Puma from development section to production
-RUN sed -e "/gem 'puma'/d" Gemfile > Gemfile.new; \
-    echo "gem 'puma'" >> Gemfile.new; \
-    diff -u Gemfile Gemfile.new; \
-    mv Gemfile.new Gemfile
-
 # The base image only has runtime dependencies, Gemfiles and pre-built assets
 # The assets and the Gemfile.lock have been overwritten by the ADD command above, restore them.
 COPY --from=base $INSTALLDIR/src/api/Gemfile.lock  $INSTALLDIR/src/api/

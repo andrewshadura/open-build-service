@@ -98,6 +98,8 @@ group :development, :production do
   gem 'ruby-ldap', require: false
   # to have better logs
   gem 'lograge'
+  # Use Puma as the app server (rails 5 default)
+  gem 'puma', '~> 4.0'
 end
 
 group :production do
@@ -175,8 +177,6 @@ group :development, :test do
   gem 'single_test'
   # to find n+1 queries
   gem 'bullet'
-  # Use Puma as the app server (rails 5 default)
-  gem 'puma', '~> 4.0'
   # to drive headless chrome
   gem 'selenium-webdriver'
   # scan for security vulnerability (circleci only, do not touch)
