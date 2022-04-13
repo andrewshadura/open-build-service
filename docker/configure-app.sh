@@ -32,6 +32,11 @@ if [ ! -z "$OBS_BACKEND_HOST" ]; then
     sed -i s/"source_host: localhost"/"source_host: ${OBS_BACKEND_HOST}"/g config/options.yml
 fi
 
+if [ ! -z "$OBS_MEMCACHE_HOST" ]
+then
+    sed -i "s/memcached_host: .*/memcached_host: $OBS_MEMCACHE_HOST/g" config/options.yml
+fi
+
 if [ ! -z "$OBS_LOG_LEVEL" ]
 then
     sed -i "s/config.log_level = .*/config.log_level = :$OBS_LOG_LEVEL/g" config/environments/production.rb

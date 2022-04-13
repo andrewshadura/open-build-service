@@ -46,6 +46,7 @@ services:
       DB_USER: obs-api
       DB_PASSWORD: someobs
       OBS_BACKEND_HOST: backend
+      OBS_MEMCACHE_HOST: cache
       OBS_FRONTEND_WORKERS: 4
     ports:
       - "127.0.0.1:3000:3000"
