@@ -1,0 +1,129 @@
+{{- $arches := default
+  (list "x86_64" "i586" "armv7hl" "aarch64")
+  .Values.global.backend.architectures
+-}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "backend.fullname" . }}
+  labels:
+    {{- include "backend.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "backend.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "backend.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "backend.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: OBS_BACKEND_HOST
+              value: {{ include "backend.fullname" . | quote }}
+            - name: OBS_FRONTEND_HOST
+              value: {{ include "frontend.hostname" . | quote }}
+            - name: OBS_ARCHES
+              value: {{ $arches | join " " | quote }}
+          ports:
+            - name: repserver
+              containerPort: 5252
+              protocol: TCP
+            - name: srcserver
+              containerPort: 5352
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: repserver
+            httpGet:
+              path: /
+              port: srcserver
+          readinessProbe:
+            httpGet:
+              path: /
+              port: repserver
+            httpGet:
+              path: /
+              port: srcserver
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: backend
+              mountPath: /srv/obs
+              subPath: data
+            - name: backend
+              mountPath: /etc/obs
+              subPath: config
+            - name: backend-logs
+              mountPath: /srv/obs/log
+            - name: backend-extraconfig
+              mountPath: /etc/obs/BSConfig.local.pm
+              subPath: BSConfig.local.pm
+        {{- $logs := list
+          "dispatcher"
+          "dodup"
+          "publisher"
+          "rep_server"
+          "src_server"
+          "warden"
+        -}}
+        {{- range $arch := $arches -}}
+        {{- $logs = append $logs (printf "scheduler_%s" $arch) -}}
+        {{- end -}}
+        {{- range $service := $logs }}
+        - name: {{ $.Chart.Name }}-{{ $service | kebabcase }}-log
+          image: busybox
+          args:
+            - sh
+            - -c
+            - tail -n+1 -F /srv/obs/log/{{ $service }}.log
+          volumeMounts:
+            - name: backend-logs
+              mountPath: /srv/obs/log
+        {{- end }}
+      volumes:
+        - name: backend
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.existingClaim | default (printf "%s-storage" (include "backend.fullname" .)) }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        - name: backend-logs
+          emptyDir: {}
+        - name: backend-extraconfig
+          configMap:
+            name: {{ include "backend.fullname" . }}-config
+            optional: true
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

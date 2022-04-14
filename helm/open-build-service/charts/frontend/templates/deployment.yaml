@@ -1,0 +1,145 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "frontend.fullname" . }}
+  labels:
+    {{- include "frontend.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "frontend.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "frontend.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "frontend.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: OBS_BACKEND_HOST
+              value: {{ include "backend.hostname" . | quote }}
+            {{- if .Values.global.frontend }}
+            - name: OBS_FRONTEND_WORKERS
+              value: {{ default 4 .Values.global.frontend.workers | quote }}
+            {{- end }}
+            - name: OBS_MEMCACHE_HOST
+              value: {{ include "frontend.memcached.fullname" . | quote }}
+            - name: DB_PORT
+              value: "3306"
+            - name: DB_HOST
+              value: {{ include "frontend.mariadb.fullname" . | quote }}
+            - name: DB_NAME
+              value: {{ .Values.mariadb.auth.database | quote }}
+            - name: DB_USER
+              value: {{ .Values.mariadb.auth.username | quote }}
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "frontend.mariadb.fullname" . | quote }}
+                  key: mariadb-password
+            - name: DB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "frontend.mariadb.fullname" . | quote}}
+                  key: mariadb-root-password
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          startupProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 20
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            failureThreshold: 1
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp-scratch
+              mountPath: /tmp
+            - name: frontend-logs
+              mountPath: /obs/src/api/log
+        - name: {{ .Chart.Name }}-weblog
+          image: busybox
+          args:
+            - sh
+            - -c
+            - tail -n+1 -F /obs/src/api/log/web-stdout.log
+          volumeMounts:
+            - name: frontend-logs
+              mountPath: /obs/src/api/log
+      initContainers:
+        - name: {{ .Chart.Name }}-initbackend
+          image: busybox
+          command:
+            - sh
+            - -c
+            - |
+              until wget --spider {{ include "backend.hostname" . }}:5252
+              do
+                echo waiting for the backend to become ready
+                sleep 2
+              done
+              echo the backend is ready
+        - name: {{ .Chart.Name }}-initdb
+          image: busybox
+          command:
+            - sh
+            - -c
+            - |
+              until nslookup {{ include "frontend.mariadb.fullname" . }}
+              do
+                echo waiting for the database to start
+                sleep 5
+              done
+              until nc {{ include "frontend.mariadb.fullname" . }} 3306 -e /bin/true < /dev/null
+              do
+                echo waiting for the database to become ready
+                sleep 2
+              done
+              echo the database is ready
+      volumes:
+        - name: tmp-scratch
+          emptyDir: {}
+        - name: frontend-logs
+          emptyDir: {}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
