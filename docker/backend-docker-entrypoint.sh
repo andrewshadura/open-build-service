@@ -22,7 +22,7 @@ export GNUPGHOME=/srv/obs/gnupg
 if [ ! -d "$GNUPGHOME" ] || [ ! -f "$GNUPGHOME/trustdb.gpg" ]
 then
     echo "GnuPG homedir is missing!"
-    mkdir -m 0700 "$GNUPGHOME"
+    mkdir -p -m 0700 "$GNUPGHOME"
     chown obsrun:obsrun "$GNUPGHOME"
     runuser -u obsrun -- gpg --list-keys
 fi
