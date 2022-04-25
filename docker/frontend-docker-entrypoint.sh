@@ -6,6 +6,8 @@ cd /obs/src/api
 rm -rfv tmp/pids/*
 chown -R frontend log tmp
 
+chmod a+rwxt /tmp
+
 /opt/configure-app.sh
 /opt/configure-db.sh
 #/opt/configure-sso.py
