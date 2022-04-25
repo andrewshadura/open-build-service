@@ -48,7 +48,7 @@ do
     done
 done
 
-if [ -z "$(/opt/get-obs-config sign)" ]
+if [ -z "$(/opt/get-obs-config sign)" ] && [ -f /etc/supervisor/conf.d/obssigner.conf ]
 then
     echo Signer not configured, disabling.
     mv /etc/supervisor/conf.d/obssigner.conf /etc/supervisor/conf.d/obssigner.conf.disabled
