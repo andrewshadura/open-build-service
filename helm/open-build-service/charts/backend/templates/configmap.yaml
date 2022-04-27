@@ -2,6 +2,8 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: {{ include "backend.fullname" . }}-config
+  labels:
+    {{- include "backend.labels" . | nindent 4 }}
 data:
   BSConfig.local.pm: {{
       printf "%s\n%s\n1;\n" "$ipaccess->{\".*\"} = \"rw,worker\";" (
