@@ -10,7 +10,7 @@ puts 'Seeding architectures table...'
   Architecture.where(name: arch_name).first_or_create
 end
 # following our default config
-['armv7l', 'i586', 'x86_64'].each do |arch_name|
+['armv7hl', 'aarch64', 'i586', 'x86_64'].each do |arch_name|
   a = Architecture.find_by_name(arch_name)
   a.available = true
   a.save
