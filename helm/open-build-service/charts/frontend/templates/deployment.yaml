@@ -38,6 +38,8 @@ spec:
             {{- if .Values.global.frontend }}
             - name: OBS_FRONTEND_WORKERS
               value: {{ default 4 .Values.global.frontend.workers | quote }}
+            - name: OBS_LOG_LEVEL
+              value: {{ default "info" .Values.global.frontend.loglevel | quote }}
             {{- end }}
             - name: OBS_MEMCACHE_HOST
               value: {{ include "frontend.memcached.fullname" . | quote }}

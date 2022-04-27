@@ -17,6 +17,7 @@ fullnameOverride: ""
 global:
   frontend: {}
     # workers: 8
+    # loglevel: info
   backend: {}
     # host: backend
 
