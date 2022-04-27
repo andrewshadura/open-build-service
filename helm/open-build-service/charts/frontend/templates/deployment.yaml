@@ -88,6 +88,16 @@ spec:
               mountPath: /tmp
             - name: frontend-logs
               mountPath: /obs/src/api/log
+            {{- if (or .Values.global.frontend.msmtprc .Values.global.frontend.msmtprcExistingSecret) }}
+            - name: frontend-email-secret
+              mountPath: /run/secrets/msmtprc
+              subPath: msmtprc
+            {{- end }}
+            {{- if (or .Values.global.frontend.ssoauth .Values.global.frontend.ssoauthExistingSecret) }}
+            - name: frontend-sso-secret
+              mountPath: /run/secrets/ssoauth
+              subPath: ssoauth
+            {{- end }}
         - name: {{ .Chart.Name }}-weblog
           image: busybox
           args:
@@ -132,6 +142,16 @@ spec:
           emptyDir: {}
         - name: frontend-logs
           emptyDir: {}
+        {{- if (or .Values.global.frontend.msmtprc .Values.global.frontend.msmtprcExistingSecret) }}
+        - name: frontend-email-secret
+          secret:
+            secretName: {{ .Values.global.frontend.msmtprcExistingSecret | default (printf "%s-email" (include "frontend.fullname" .)) }}
+        {{- end }}
+        {{- if (or .Values.global.frontend.ssoauth .Values.global.frontend.ssoauthExistingSecret) }}
+        - name: frontend-sso-secret
+          secret:
+            secretName: {{ .Values.global.frontend.ssoauthExistingSecret | default (printf "%s-sso" (include "frontend.fullname" .)) }}
+        {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

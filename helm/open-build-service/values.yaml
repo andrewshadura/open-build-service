@@ -24,6 +24,17 @@ global:
   frontend:
     workers: 4
     # host: frontend
+    # msmtprc: |
+    #   ...
+    # ssoauth:
+    #   fdo-gitlab:
+    #     strategy: gitlab
+    #     description: Freedesktop.org GitLab
+    #     scope: read_user openid profile email
+    #     client_id: hexhexhexhex
+    #     client_secret: hexhexhexhex
+    #     client_options:
+    #       site: https://gitlab.freedesktop.org/api/v4
   backend: {}
     # host: backend
     # extraConfig: |
