@@ -13,8 +13,11 @@ image:
 global:
   frontend: {}
     # host: frontend
-  backend: {}
+  backend:
     # architectures: ["x86_64", "aarch64"]
+    aptly:
+      rootDir: /srv/obs/aptly
+      ppaDistributorID: ""
 
 imagePullSecrets: []
 nameOverride: ""

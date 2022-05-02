@@ -10,3 +10,4 @@ data:
         default "" .Values.global.backend.extraConfig
       ) | quote
     }}
+  aptly.conf: {{ default "" .Values.global.backend.aptly | toPrettyJson | quote }}

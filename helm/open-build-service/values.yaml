@@ -39,6 +39,9 @@ global:
     # host: backend
     # extraConfig: |
     #   $ipaccess->{"10.*"} = "rw";
+    # aptly:
+    #   rootDir: /srv/obs/aptly
+    #   ppaDistributorID: ""
 
 imagePullSecrets: []
 nameOverride: ""

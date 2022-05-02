@@ -75,6 +75,9 @@ spec:
             - name: backend-extraconfig
               mountPath: /etc/obs/BSConfig.local.pm
               subPath: BSConfig.local.pm
+            - name: backend-extraconfig
+              mountPath: /etc/obs/aptly.conf
+              subPath: aptly.conf
         {{- $logs := list
           "dispatcher"
           "dodup"
