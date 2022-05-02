@@ -30,11 +30,20 @@ RUN apt-get update \
         make \
         patch \
         procps \
-        reprepro \
         supervisor \
         tzdata \
         xzdec \
         zstd
+
+RUN mkdir -p /etc/apt/sources.list.d
+COPY docker/apt/*.list /etc/apt/sources.list.d/
+COPY docker/apt/*.gpg /usr/share/keyrings/
+
+# reprepro #697630
+RUN apt-get update \
+ && apt-get install -y \
+        apt-utils \
+        reprepro
 
 COPY . $WORKDIR
 
