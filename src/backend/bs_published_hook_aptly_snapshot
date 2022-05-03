@@ -20,69 +20,6 @@ use POSIX qw(strftime);
 
 use vars qw ($opt_t);
 
-sub aptly_distro_snapshot {
-  # Create snapshots for all the repositories in an aptly prefix/distribution.
-  my ($prefix, $distribution, $timestamp) = @_;
-  my $distro_config = BSAptly::aptly_distro_get_config($prefix, $distribution);
-  my $distro_components = $distro_config->{'components'};
-
-  foreach my $component (keys %$distro_components) {
-    my $component_config = $distro_components->{$component};
-    my $projid = $component_config->{'project'};
-    my $repoid = $component_config->{'repository'};
-    my $obs_proj = BSAptly::obs_get_project($projid);
-    my $obs_repo = BSAptly::obs_get_repo($projid, $repoid);
-
-    next unless $obs_repo;
-
-    BSAptly::aptly_snapshot_create($component_config->{'project'}, $component_config->{'repository'}, $timestamp);
-  }
-}
-
-sub aptly_publish_snapshot {
-  # Publish snapshots for the repositories in an aptly prefix/distribution.
-  my ($prefix, $distribution, $timestamp) = @_;
-  my %archs;
-  my @components;
-  my @snapshots;
-
-  my $distro_config = BSAptly::aptly_distro_get_config($prefix, $distribution);
-  my $distro_components = $distro_config->{'components'};
-
-  foreach my $component (keys %$distro_components) {
-    my $component_config = $distro_components->{$component};
-    my $projid = $component_config->{'project'};
-    my $repoid = $component_config->{'repository'};
-    my $obs_proj = BSAptly::obs_get_project($projid);
-    my $obs_repo = BSAptly::obs_get_repo($projid, $repoid);
-
-    next unless $obs_repo;
-    next unless BSAptly::aptly_snapshot_exists($projid, $repoid, $timestamp);
-
-    push @components, $component;
-    push @snapshots, "$projid/$repoid/$timestamp";
-    foreach my $arch (@{ $obs_repo->{'arch'} }) {
-      if (BSUtil::enabled($repoid, $obs_proj->{'publish'}, 1, $arch)) {
-        $archs{$arch} = 1;
-      }
-    }
-  }
-
-  if (!%archs) {
-    return 0;
-  }
-
-  my $gpgkey = $distro_config->{'gpg-key'} || $BSConfig::aptly_defconfig->{'gpg-key'} || "";
-
-  my @args = ('publish', 'snapshot',
-    "-architectures=".join(',', map { Build::Deb::basearch($_) } keys %archs),
-    "-distribution=$distribution",
-    "-component=".join(',', @components),
-    "-gpg-key=$gpgkey",
-    @snapshots, "$prefix/snapshots/$timestamp");
-  return BSAptly::aptly_exec(@args);
-}
-
 sub distribution_basename {
   my ($distribution) = @_;
   my ($basename, $suffix) = $distribution =~ /(.*)-(.*)/;
@@ -93,8 +30,8 @@ sub do_distro_snapshot {
   my ($prefix, $distribution, $timestamp) = @_;
   my $distro_config = BSAptly::aptly_distro_get_config($prefix, $distribution);
   die("can't find aptly configuration for distribution $prefix/$distribution\n") if !$distro_config;
-  aptly_distro_snapshot($prefix, $distribution, $timestamp);
-  aptly_publish_snapshot($prefix, $distribution, $timestamp);
+  BSAptly::aptly_distro_snapshot($prefix, $distribution, $timestamp);
+  BSAptly::aptly_publish_snapshot($prefix, $distribution, $timestamp);
 }
 
 getopts('t:');

@@ -219,6 +219,69 @@ sub aptly_snapshot_exists {
   return aptly_exec(@args) == 0;
 }
 
+sub aptly_distro_snapshot {
+  # Create snapshots for all the repositories in an aptly prefix/distribution.
+  my ($prefix, $distribution, $timestamp) = @_;
+  my $distro_config = aptly_distro_get_config($prefix, $distribution);
+  my $distro_components = $distro_config->{'components'};
+
+  foreach my $component (keys %$distro_components) {
+    my $component_config = $distro_components->{$component};
+    my $projid = $component_config->{'project'};
+    my $repoid = $component_config->{'repository'};
+    my $obs_proj = obs_get_project($projid);
+    my $obs_repo = obs_get_repo($projid, $repoid);
+
+    next unless $obs_repo;
+
+    aptly_snapshot_create($component_config->{'project'}, $component_config->{'repository'}, $timestamp);
+  }
+}
+
+sub aptly_publish_snapshot {
+  # Publish snapshots for the repositories in an aptly prefix/distribution.
+  my ($prefix, $distribution, $timestamp) = @_;
+  my %archs;
+  my @components;
+  my @snapshots;
+
+  my $distro_config = aptly_distro_get_config($prefix, $distribution);
+  my $distro_components = $distro_config->{'components'};
+
+  foreach my $component (keys %$distro_components) {
+    my $component_config = $distro_components->{$component};
+    my $projid = $component_config->{'project'};
+    my $repoid = $component_config->{'repository'};
+    my $obs_proj = obs_get_project($projid);
+    my $obs_repo = obs_get_repo($projid, $repoid);
+
+    next unless $obs_repo;
+    next unless aptly_snapshot_exists($projid, $repoid, $timestamp);
+
+    push @components, $component;
+    push @snapshots, "$projid/$repoid/$timestamp";
+    foreach my $arch (@{ $obs_repo->{'arch'} }) {
+      if (BSUtil::enabled($repoid, $obs_proj->{'publish'}, 1, $arch)) {
+        $archs{$arch} = 1;
+      }
+    }
+  }
+
+  if (!%archs) {
+    return 0;
+  }
+
+  my $gpgkey = $distro_config->{'gpg-key'} || $BSConfig::aptly_defconfig->{'gpg-key'} || "";
+
+  my @args = ('publish', 'snapshot',
+    "-architectures=".join(',', map { Build::Deb::basearch($_) } keys %archs),
+    "-distribution=$distribution",
+    "-component=".join(',', @components),
+    "-gpg-key=$gpgkey",
+    @snapshots, "$prefix/snapshots/$timestamp");
+  return aptly_exec(@args);
+}
+
 # Aptly db command wrappers
 
 sub aptly_db_cleanup {
