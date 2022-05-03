@@ -318,6 +318,13 @@ sub aptly_repo_drop {
   return aptly_exec(@args);
 }
 
+sub aptly_repo_clean {
+  # Remove all packages in aptly repository.
+  my ($projid, $repoid) = @_;
+  my @args = ('repo', 'remove', "$projid/$repoid", 'Name');
+  return aptly_exec(@args);
+}
+
 # Hook functions for OBS
 
 sub aptly_putproject {
