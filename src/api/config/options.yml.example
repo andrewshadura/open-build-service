@@ -183,6 +183,7 @@ default: &default
   #    persistent: true
   #    passive: true
 
+  influxdb_hosts: []
   # For sending application performance metrics to a influx time series database
   # influxdb_database: rails
   # influxdb_username: rails

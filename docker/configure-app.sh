@@ -37,6 +37,11 @@ then
     sed -i "s/memcached_host: .*/memcached_host: $OBS_MEMCACHE_HOST/g" config/options.yml
 fi
 
+if [ ! -z "$OBS_INFLUXDB_HOST" ]
+then
+    sed -i "s/influxdb_hosts: \[]/influxdb_hosts: [\"$OBS_INFLUXDB_HOST\"]/g" config/options.yml
+fi
+
 if [ ! -z "$OBS_LOG_LEVEL" ]
 then
     sed -i "s/config.log_level = .*/config.log_level = :$OBS_LOG_LEVEL/g" config/environments/production.rb
