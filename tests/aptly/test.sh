@@ -9,7 +9,7 @@ prj_arch="x86_64"
 prj_components="target development sdk"
 prj_distro="v2022"
 prj_osname="apertis"
-prj_prefix="shared/apertis/public"
+prj_prefix="shared/apertis/public/apertis"
 prj_repo="default"
 
 apertis_pool_url="https://repositories.apertis.org/apertis/pool"
