@@ -7,7 +7,7 @@ ABS_ROOT_DIR="$(realpath $ROOT_DIR)"
 
 prj_arch="x86_64"
 prj_components="target development sdk"
-prj_distro="v2022"
+prj_distro="v2023"
 prj_osname="apertis"
 prj_prefix="shared/apertis/public/apertis"
 prj_repo="default"
