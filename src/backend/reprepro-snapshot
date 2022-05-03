@@ -1,0 +1,54 @@
+#!/bin/sh -x
+
+timestamp=$(date --utc +%Y%m%dT%H%M%SZ)
+
+if [ $(id -nu) != obsrun ]
+then
+    echo Need to run as obsrun
+    exit 1
+fi
+
+[ -z "$1" ] && exit 0
+
+repo=${1##*/}
+project=${1%%/*}
+distro=${project##apertis:}
+codename=${distro%%:*}
+component=${distro##*:}
+
+[ -z "$component" ] && exit 0
+[ -z "$codename" ] && exit 0
+
+root=/srv/obs/repos/shared
+
+if [ "$component" = snapshots ]
+then
+    echo "$0: Not publishing snapshots" >&2
+    exit 0
+fi
+
+if [ "$component" = proprietary ]
+then
+    section=internal
+else
+    section=public
+fi
+
+base=$root/apertis/$section/apertis
+
+take_snapshot() {
+	local codename
+	codename=$1
+
+	[ -d "$base/dists/$codename" ] || return
+
+	reprepro -b "$base" --gnupghome /srv/obs/gnupg/ --waitforlock 10 gensnapshot "$codename" "$timestamp"
+
+	ln -sfrn "$base/dists/$codename/snapshots/$timestamp" "$base/dists/$codename/snapshots/latest"
+
+	echo $timestamp > "$base/dists/$codename/snapshots/latest.txt"
+}
+
+take_snapshot "$codename"
+take_snapshot "$codename-security"
+take_snapshot "$codename-updates"
