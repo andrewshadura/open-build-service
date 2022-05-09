@@ -212,6 +212,13 @@ sub aptly_snapshot_create {
   return aptly_exec(@args);
 }
 
+sub aptly_snapshot_drop {
+  my ($projid, $repoid, $timestamp) = @_;
+  my @args = ('snapshot', 'drop',
+    "$projid/$repoid/$timestamp");
+  return aptly_exec(@args);
+}
+
 sub aptly_snapshot_exists {
   # Check if aptly snapshot exists
   my ($projid, $repoid, $timestamp) = @_;
@@ -235,6 +242,23 @@ sub aptly_distro_snapshot {
     next unless $obs_repo;
 
     aptly_snapshot_create($component_config->{'project'}, $component_config->{'repository'}, $timestamp);
+  }
+}
+
+sub aptly_distro_snapshot_drop {
+  # Drop snapshots for all the repositories in an aptly prefix/distribution.
+  my ($prefix, $distribution, $timestamp) = @_;
+  my $distro_config = aptly_distro_get_config($prefix, $distribution);
+  my $distro_components = $distro_config->{'components'};
+
+  foreach my $component (keys %$distro_components) {
+    my $component_config = $distro_components->{$component};
+    my $projid = $component_config->{'project'};
+    my $repoid = $component_config->{'repository'};
+
+    next unless aptly_snapshot_exists($projid, $repoid, $timestamp);
+
+    aptly_snapshot_drop($component_config->{'project'}, $component_config->{'repository'}, $timestamp);
   }
 }
 
@@ -280,6 +304,12 @@ sub aptly_publish_snapshot {
     "-gpg-key=$gpgkey",
     @snapshots, "$prefix/snapshots/$timestamp");
   return aptly_exec(@args);
+}
+
+sub aptly_unpublish_snapshot {
+  # Unpublish snapshots for the repositories in an aptly prefix/distribution.
+  my ($prefix, $distribution, $timestamp) = @_;
+  return aptly_publish_drop("$prefix/snapshots/$timestamp", $distribution);
 }
 
 # Aptly db command wrappers
