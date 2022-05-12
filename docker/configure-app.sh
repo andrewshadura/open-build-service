@@ -15,7 +15,8 @@ done
 # Allow overriding the secret key
 if [ -f /run/secrets/secretkey ]
 then
-    ln -sf /run/secrets/secretkey config/secret.key
+    cp /run/secrets/secretkey config/secret.key
+    chown frontend config/secret.key
 fi
 
 if [ ! -r config/secret.key ]
@@ -50,11 +51,13 @@ fi
 # Set up msmtp if a configuration is supplied
 if [ -f /run/secrets/msmtprc ]
 then
-    ln -sf /run/secrets/msmtprc /etc/msmtprc
+    cp /run/secrets/msmtprc /etc/msmtprc
+    chown frontend /etc/msmtprc
 fi
 
 # Set up SSO auth if a configuration is supplied
 if [ -f /run/secrets/ssoauth ]
 then
-    ln -sf /run/secrets/ssoauth config/auth.yml
+    cp /run/secrets/ssoauth config/auth.yml
+    chown frontend config/auth.yml
 fi
