@@ -28,8 +28,6 @@ services:
 
   frontend:
     image: registry.gitlab.collabora.com/obs/open-build-service/frontend
-    depends_on:
-      - backend
     volumes:
       - frontend-logs:/obs/src/api/log
       - type: tmpfs
@@ -51,6 +49,7 @@ services:
     ports:
       - "127.0.0.1:3000:3000"
     depends_on:
+      - backend
       - db
       - cache
 
