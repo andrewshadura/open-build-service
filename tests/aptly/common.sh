@@ -31,15 +31,15 @@ aalib_dsc="aalib_1.4p5-48+apertis1.dsc"
 advancecomp_dsc="advancecomp_2.1-2.1co1.dsc"
 alembic_dsc="alembic_1.4.3-1apertis0.dsc"
 
-target_bins="libaa-bin_1.4p5-48+apertis1_amd64
-	libaa-bin-dbgsym_1.4p5-48+apertis1_amd64
-	libaa1_1.4p5-48+apertis1_amd64
-	libaa1-dbgsym_1.4p5-48+apertis1_amd64
-	libaa1-dev_1.4p5-48+apertis1_amd64"
-development_bins="advancecomp_2.1-2.1co1_amd64
-	advancecomp-dbgsym_2.1-2.1co1_amd64"
-sdk_bins="alembic_1.4.3-1apertis0_all
-	python3-alembic_1.4.3-1apertis0_all"
+target_bins="libaa-bin-dbgsym_1.4p5-48+apertis1bv2023.0b1_amd64
+	libaa-bin_1.4p5-48+apertis1bv2023.0b1_amd64
+	libaa1-dbgsym_1.4p5-48+apertis1bv2023.0b1_amd64
+	libaa1-dev_1.4p5-48+apertis1bv2023.0b1_amd64
+	libaa1_1.4p5-48+apertis1bv2023.0b1_amd64"
+development_bins="advancecomp-dbgsym_2.1-2.1co1bv2023.0b1_amd64
+	advancecomp_2.1-2.1co1bv2023.0b1_amd64"
+sdk_bins="alembic_1.4.3-1apertis0bv2023.0b1_all
+	python3-alembic_1.4.3-1apertis0bv2023.0b1_all"
 
 get_oscrc () {
 	obs_frontend_host="$1"
