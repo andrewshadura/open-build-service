@@ -11,6 +11,7 @@ RUN apt-get update \
         aptly \
         adduser \
         ca-certificates \
+        cron \
         curl \
         devscripts \
         diffutils \
@@ -66,6 +67,8 @@ RUN test -f /usr/lib/obs/server/build/Build/Modules.pm
 
 COPY docker/services/backend/*.conf /etc/supervisor/conf.d/
 COPY docker/ /opt/
+
+COPY docker/cron/cron.conf /etc/supervisor/conf.d/
 
 VOLUME /etc/obs
 
