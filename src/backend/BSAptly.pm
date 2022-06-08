@@ -169,6 +169,7 @@ sub aptly_publish_repo {
     "-distribution=$distribution",
     "-component=".join(',', @components),
     "-gpg-key=$gpgkey",
+    '-skip-contents',
     @repos, $prefix);
   return aptly_exec(@args);
 }
@@ -192,7 +193,9 @@ sub aptly_publish_drop_check {
 sub aptly_publish_update {
   my ($prefix, $distribution) = @_;
   # Update an already published repository distribution
-  my @args = ('publish', 'update', $distribution, $prefix);
+  my @args = ('publish', 'update',
+    '-skip-contents',
+    $distribution, $prefix);
   return aptly_exec(@args);
 }
 
@@ -302,6 +305,7 @@ sub aptly_publish_snapshot {
     "-distribution=$distribution",
     "-component=".join(',', @components),
     "-gpg-key=$gpgkey",
+    '-skip-contents',
     @snapshots, "$prefix/snapshots/$timestamp");
   return aptly_exec(@args);
 }
