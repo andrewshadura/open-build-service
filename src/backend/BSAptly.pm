@@ -88,6 +88,19 @@ sub aptly_repo_get_component {
   return undef;
 }
 
+sub aptly_get_config {
+  my ($configid) = @_;
+  my @args = ('aptly', "-config=".APTLY_CONFIG_FILE,
+    'config', 'show');
+  my $args = join(' ', @args);
+  foreach my $line (`$args`) {
+    if ($line =~ /^\s*"$configid":\s*"(\S*)",$/) {
+      return $1;
+    }
+  }
+  return undef;
+}
+
 # OBS objects helpers
 
 sub obs_get_project {
