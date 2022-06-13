@@ -232,6 +232,11 @@ sub aptly_snapshot_exists {
   return aptly_exec(@args) == 0;
 }
 
+sub aptly_snapshot_gen_distro {
+  my ($distribution, $timestamp) = @_;
+  return "$distribution/snapshots/$timestamp",
+}
+
 sub aptly_distro_snapshot {
   # Create snapshots for all the repositories in an aptly prefix/distribution.
   my ($prefix, $distribution, $timestamp) = @_;
@@ -305,18 +310,18 @@ sub aptly_publish_snapshot {
 
   my @args = ('publish', 'snapshot',
     "-architectures=".join(',', map { Build::Deb::basearch($_) } (('source'), keys %archs)),
-    "-distribution=$distribution",
+    "-distribution=".aptly_snapshot_gen_distro($distribution, $timestamp),
     "-component=".join(',', @components),
     "-gpg-key=$gpgkey",
     '-skip-contents',
-    @snapshots, "$prefix/snapshots/$timestamp");
+    @snapshots, $prefix);
   return aptly_exec(@args);
 }
 
 sub aptly_unpublish_snapshot {
   # Unpublish snapshots for the repositories in an aptly prefix/distribution.
   my ($prefix, $distribution, $timestamp) = @_;
-  return aptly_publish_drop("$prefix/snapshots/$timestamp", $distribution);
+  return aptly_publish_drop($prefix, aptly_snapshot_gen_distro($distribution, $timestamp));
 }
 
 # Aptly db command wrappers

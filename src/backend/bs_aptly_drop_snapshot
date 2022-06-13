@@ -25,10 +25,10 @@ sub distribution_basename {
 sub drop_distro_snapshot {
   my ($prefix, $distribution, $timestamp) = @_;
   my $distro_config = BSAptly::aptly_distro_get_config($prefix, $distribution);
-  my $snapshot = "$prefix/snapshots/$timestamp";
-  die("can't find aptly configuration for distribution $prefix/$distribution\n") if !$distro_config;
-  if (!BSAptly::aptly_is_published($snapshot, $distribution)) {
-    die("$snapshot $distribution not published\n");
+  my $snapshot_distro = BSAptly::aptly_snapshot_gen_distro($distribution, $timestamp);
+  die("can't find aptly configuration for distribution $prefix/$snapshot_distro\n") if !$distro_config;
+  if (!BSAptly::aptly_is_published($prefix, $snapshot_distro)) {
+    die("$prefix $snapshot_distro not published\n");
   }
   BSAptly::aptly_unpublish_snapshot($prefix, $distribution, $timestamp);
   BSAptly::aptly_distro_snapshot_drop($prefix, $distribution, $timestamp);

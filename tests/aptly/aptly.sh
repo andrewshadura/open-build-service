@@ -87,9 +87,8 @@ for prj_component in $prj_components; do
 	fi
 done
 
-prefix="$prj_public_prefix/snapshots/$timestamp"
-echo "Checking aptly snapshot publish: $prj_distro $prefix"
-if ! $aptly publish show $prj_distro $prefix; then
+echo "Checking aptly snapshot publish: $prj_distro $prj_public_prefix"
+if ! $aptly publish show "$prj_distro/snapshots/$timestamp" $prj_public_prefix; then
 	echo "ERROR: aptly snapshot not published" >&2
 	exit 1
 fi
