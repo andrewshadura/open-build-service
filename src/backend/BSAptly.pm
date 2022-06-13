@@ -193,7 +193,10 @@ sub aptly_publish_drop_check {
 sub aptly_publish_update {
   my ($prefix, $distribution) = @_;
   # Update an already published repository distribution
+  my $distro_config = aptly_distro_get_config($prefix, $distribution);
+  my $gpgkey = $distro_config->{'gpg-key'} || $BSConfig::aptly_defconfig->{'gpg-key'} || "";
   my @args = ('publish', 'update',
+    "-gpg-key=$gpgkey",
     '-skip-contents',
     $distribution, $prefix);
   return aptly_exec(@args);
