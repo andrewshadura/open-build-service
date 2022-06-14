@@ -1,14 +1,37 @@
+# Global ARGs shared by all stages
+ARG DEBIAN_FRONTEND=noninteractive
+ARG GOPATH=/usr/local/go
+
+# Build aplty
+FROM debian:bullseye-slim as builder
+ENV LC_ALL=C.UTF-8
+ARG DEBIAN_FRONTEND
+ARG GOPATH
+
+RUN apt-get update && \
+      apt-get install -y --no-install-recommends \
+          build-essential \
+          ca-certificates \
+          gcc \
+          git \
+          golang-go \
+          libc6-dev
+
+RUN git clone https://gitlab.collabora.com/obs/aptly.git $GOPATH/src/gitlab.collabora.com/obs/aptly \
+ && cd $GOPATH/src/gitlab.collabora.com/obs/aptly \
+ && make install
+
 FROM debian:bullseye-slim as server
 LABEL maintainer Andrej Shadura <andrew.shadura@collabora.co.uk>
 ENV LC_ALL=C.UTF-8
-ARG DEBIAN_FRONTEND=noninteractive
 ARG WORKDIR=/tmp/sources
+ARG DEBIAN_FRONTEND
+ARG GOPATH
 
 # Needs checking what’s actually needed
 RUN apt-get update \
  && apt-get install -y \
         apt-utils \
-        aptly \
         adduser \
         ca-certificates \
         cron \
@@ -76,6 +99,8 @@ VOLUME /etc/obs
 
 COPY docker/services/aptly/aptly.conf /etc/obs/aptly.conf
 RUN /opt/configure-backend-user.sh
+
+COPY --from=builder $GOPATH/bin/aptly /usr/local/bin/aptly
 
 RUN mkdir -p /srv/obs/log /srv/obs/run \
  && chmod ug=rwxt /srv/obs/run \
