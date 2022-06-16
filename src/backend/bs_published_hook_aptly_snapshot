@@ -49,16 +49,14 @@ my $distribution = distribution_basename($distro_config->{'distribution'});
 
 my $rootDir = BSAptly::aptly_get_config('rootDir');
 die("failed to read Aptly config rootDir\n") if !$rootDir;
-my $rootDir = BSAptly::aptly_get_config('rootDir');
 my $distsDir = "$rootDir/public/$prefix/dists";
 
 foreach my $suffix (@suffixes) {
   do_distro_snapshot($prefix, $distribution.$suffix, $timestamp);
-  my $targetDir = "$distsDir/".BSAptly::aptly_snapshot_gen_distro($distribution.$suffix, $timestamp);
   my $linkName = "$distsDir/".BSAptly::aptly_snapshot_gen_distro($distribution.$suffix, 'latest');
   unlink($linkName);
-  symlink($targetDir, $linkName) or die("failed to create latest/ symlink to $targetDir");
-  open(FH, '>', "$linkName.txt") or die("failed to write latest.txt file: $!");
+  symlink($timestamp, $linkName) or die("failed to create $linkName symlink to $timestamp");
+  open(FH, '>', "$linkName.txt") or die("failed to write $linkName.txt file: $!");
   print FH "$timestamp";
   close(FH);
 }
