@@ -15,6 +15,7 @@ BEGIN {
 }
 
 use BSAptly;
+use File::Basename;
 use Getopt::Std;
 use POSIX qw(strftime);
 
@@ -53,9 +54,15 @@ my $distsDir = "$rootDir/public/$prefix/dists";
 
 foreach my $suffix (@suffixes) {
   do_distro_snapshot($prefix, $distribution.$suffix, $timestamp);
+  my $targetSnapshot = "$distsDir/".BSAptly::aptly_snapshot_gen_distro($distribution.$suffix, $timestamp);
+  my $targetDir = dirname($targetSnapshot);
+  if (! -d $targetDir) {
+    warn("$targetDir doesn't exist, ignoring suffix $suffix\n");
+    next;
+  }
   my $linkName = "$distsDir/".BSAptly::aptly_snapshot_gen_distro($distribution.$suffix, 'latest');
   unlink($linkName);
-  symlink($timestamp, $linkName) or die("failed to create $linkName symlink to $timestamp");
+  symlink($targetSnapshot, $linkName) or die("failed to create $linkName symlink to $targetSnapshot");
   open(FH, '>', "$linkName.txt") or die("failed to write $linkName.txt file: $!");
   print FH "$timestamp";
   close(FH);
