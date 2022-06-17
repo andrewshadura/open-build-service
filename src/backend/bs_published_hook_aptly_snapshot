@@ -60,10 +60,8 @@ foreach my $suffix (@suffixes) {
     warn("$targetDir doesn't exist, ignoring suffix $suffix\n");
     next;
   }
-  my $linkName = "$distsDir/".BSAptly::aptly_snapshot_gen_distro($distribution.$suffix, 'latest');
-  unlink($linkName);
-  symlink($targetSnapshot, $linkName) or die("failed to create $linkName symlink to $targetSnapshot");
-  open(FH, '>', "$linkName.txt") or die("failed to write $linkName.txt file: $!");
+  my $linkName = "$distsDir/".BSAptly::aptly_snapshot_gen_distro($distribution.$suffix, 'latest.txt');
+  open(FH, '>', "$linkName") or die("failed to write $linkName file: $!");
   print FH "$timestamp";
   close(FH);
 }
