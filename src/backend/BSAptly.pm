@@ -250,6 +250,14 @@ sub aptly_snapshot_gen_distro {
   return "$distribution/snapshots/$timestamp",
 }
 
+sub aptly_snapshot_list {
+  # List all snapshots in machine-readable format
+  my @args = ('aptly', "-config=".APTLY_CONFIG_FILE,
+    'snapshot', 'list', '-raw');
+  my $args = join(' ', @args);
+  return `$args`;
+}
+
 sub aptly_distro_snapshot {
   # Create snapshots for all the repositories in an aptly prefix/distribution.
   my ($prefix, $distribution, $timestamp) = @_;
@@ -335,6 +343,20 @@ sub aptly_unpublish_snapshot {
   # Unpublish snapshots for the repositories in an aptly prefix/distribution.
   my ($prefix, $distribution, $timestamp) = @_;
   return aptly_publish_drop($prefix, aptly_snapshot_gen_distro($distribution, $timestamp));
+}
+
+sub aptly_unpublish_snapshot_check {
+  # Unpublish snapshots for the repositories in an aptly prefix/distribution.
+  my ($prefix, $distribution, $timestamp) = @_;
+  return aptly_publish_drop_check($prefix, aptly_snapshot_gen_distro($distribution, $timestamp));
+}
+
+sub aptly_publish_list {
+  # List all published endpoints in machine-readable format
+  my @args = ('aptly', "-config=".APTLY_CONFIG_FILE,
+    'publish', 'list', '-raw');
+  my $args = join(' ', @args);
+  return `$args`;
 }
 
 # Aptly db command wrappers

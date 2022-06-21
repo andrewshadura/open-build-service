@@ -43,6 +43,9 @@ RUN apt-get update \
         locales \
         libbssolv-perl \
         libcompress-raw-zlib-perl \
+        libdatetime-format-duration-perl \
+        libdatetime-format-http-perl \
+        libdatetime-perl \
         libfile-sync-perl \
         libio-compress-perl \
         libjson-xs-perl \
@@ -53,6 +56,7 @@ RUN apt-get update \
         libxml-simple-perl \
         libxml-structured-perl \
         libyaml-libyaml-perl \
+        libyaml-tiny-perl \
         make \
         patch \
         procps \
