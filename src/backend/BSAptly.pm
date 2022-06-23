@@ -11,6 +11,7 @@ use BSPublisher::Util;
 use BSRevision;
 use BSUtil;
 use Build::Deb;
+use POSIX qw(strftime);
 
 use strict;
 
@@ -50,7 +51,8 @@ sub aptly_exec {
   } elsif ($pid == 0) {
     BSUtil::lockopen(*STDOUT, '>>', APTLY_LOG_FILE);
     open(STDERR, '>&STDOUT');
-    print STDOUT ">>>>> aptly_exec: ".join(' ', @args)."\n";
+    my $timestamp = strftime "%Y-%m-%d %H:%M:%S", gmtime;
+    print STDOUT "$timestamp: ".join(' ', @args)."\n";
     exec(@args) || die("Failed to exec $args[0]: $!\n");
   } else {
     waitpid($pid, 0) == $pid || die("Failed on waitpid $pid: $!\n");
