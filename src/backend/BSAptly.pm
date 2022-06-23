@@ -183,6 +183,7 @@ sub aptly_publish_repo {
     "-component=".join(',', @components),
     "-gpg-key=$gpgkey",
     '-skip-contents',
+    '-skip-bz2',
     @repos, $prefix);
   return aptly_exec(@args);
 }
@@ -211,6 +212,7 @@ sub aptly_publish_update {
   my @args = ('publish', 'update',
     "-gpg-key=$gpgkey",
     '-skip-contents',
+    '-skip-bz2',
     $distribution, $prefix);
   return aptly_exec(@args);
 }
@@ -335,6 +337,7 @@ sub aptly_publish_snapshot {
     "-component=".join(',', @components),
     "-gpg-key=$gpgkey",
     '-skip-contents',
+    '-skip-bz2',
     @snapshots, $prefix);
   return aptly_exec(@args);
 }
