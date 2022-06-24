@@ -17,7 +17,7 @@ RUN apt-get update && \
           golang-go \
           libc6-dev
 
-RUN git clone https://gitlab.collabora.com/obs/aptly.git $GOPATH/src/gitlab.collabora.com/obs/aptly \
+RUN git clone -b collabora/production https://gitlab.collabora.com/obs/aptly.git $GOPATH/src/gitlab.collabora.com/obs/aptly \
  && cd $GOPATH/src/gitlab.collabora.com/obs/aptly \
  && make install
 
