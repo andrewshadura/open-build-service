@@ -416,7 +416,7 @@ sub aptly_putproject {
   foreach my $repoid (keys %{ $oldrepos }) {
     my $repo_config = $proj_config->{$repoid};
     if (!$newrepos->{$repoid}) {
-      aptly_publish_drop_check($repo_config->{'prefix'}, $repo_config->{'distribution'});
+      #aptly_publish_drop_check($repo_config->{'prefix'}, $repo_config->{'distribution'});
       aptly_repo_drop($proj->{'name'}, $repoid);
       aptly_publish_repo($repo_config->{'prefix'}, $repo_config->{'distribution'});
     }
@@ -424,7 +424,7 @@ sub aptly_putproject {
 
   foreach my $repoid (keys %{ $newrepos }) {
     my $repo_config = $proj_config->{$repoid};
-    aptly_publish_drop_check($repo_config->{'prefix'}, $repo_config->{'distribution'});
+    #aptly_publish_drop_check($repo_config->{'prefix'}, $repo_config->{'distribution'});
     if (!$oldrepos->{$repoid}) {
       my $component = aptly_repo_get_component($proj->{'name'}, $repoid);
       aptly_repo_create($proj->{'name'}, $repoid, $repo_config->{'distribution'}, $component);
