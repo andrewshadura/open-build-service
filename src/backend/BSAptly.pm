@@ -40,7 +40,6 @@ BEGIN {
 # OBS runs as `obsrun` user, but HOME is pointing to /root/, so this will
 # raise a permission error. Thus, set the default system configuration file.
 use constant APTLY_CONFIG_FILE => '/etc/obs/aptly.conf';
-use constant APTLY_LOG_FILE => '/srv/obs/log/aptly.log';
 
 sub aptly_exec {
   my @args = ('aptly', "-config=".APTLY_CONFIG_FILE, @_);
@@ -49,7 +48,6 @@ sub aptly_exec {
   if (!defined($pid = fork())) {
     die "Failed to fork child: $!";
   } elsif ($pid == 0) {
-    BSUtil::lockopen(*STDOUT, '>>', APTLY_LOG_FILE);
     open(STDERR, '>&STDOUT');
     my $timestamp = strftime "%Y-%m-%d %H:%M:%S", gmtime;
     print STDOUT "$timestamp: ".join(' ', @args)."\n";
