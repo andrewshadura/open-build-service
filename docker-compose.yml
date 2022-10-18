@@ -26,6 +26,7 @@ services:
     environment:
       OBS_FRONTEND_HOST: frontend
       OBS_BACKEND_HOST: backend
+      OBS_TRUST_PRIVATE_NET: 'yes'
     ports:
       - "127.0.0.1:8080:8080"
 

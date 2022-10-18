@@ -54,4 +54,7 @@ then
     mv /etc/supervisor/conf.d/obssigner.conf /etc/supervisor/conf.d/obssigner.conf.disabled
 fi
 
+: ${OBS_TRUST_PRIVATE_NET:=1}
+export OBS_TRUST_PRIVATE_NET
+
 exec /usr/bin/supervisord -n

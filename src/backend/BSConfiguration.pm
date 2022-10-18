@@ -94,4 +94,11 @@ $BSConfig::cloudupload_pubkey       = $BSConfig::cloudupload_pubkey       || '/e
 
 $BSConfig::redisserver = undef unless $BSConfig::redisserver;
 
+if (grep {($ENV{'OBS_TRUST_PRIVATE_NET'} || '') eq $_} qw(1 yes true)) {
+  $BSConfig::ipaccess->{'^172\.1[6-9]\..*'} = 'rw';
+  $BSConfig::ipaccess->{'^172\.2[0-9]\..*'} = 'rw';
+  $BSConfig::ipaccess->{'^172\.3[01]\..*'} = 'rw';
+  $BSConfig::ipaccess->{'^192\.168\..*'} = 'rw';
+}
+
 1;
