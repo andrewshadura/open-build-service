@@ -126,11 +126,6 @@ spec:
             - sh
             - -c
             - |
-              until nslookup {{ include "frontend.mariadb.fullname" . }}
-              do
-                echo waiting for the database to start
-                sleep 5
-              done
               until nc {{ include "frontend.mariadb.fullname" . }} 3306 -e /bin/true < /dev/null
               do
                 echo waiting for the database to become ready
