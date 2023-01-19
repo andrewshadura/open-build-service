@@ -224,25 +224,27 @@ class User < ApplicationRecord
     user
   end
 
+  def self.derive_username(auth)
+    # Derive a username from the information available
+    username = auth['username'] || auth['nickname']
+    # Some providers set username or nickname to an email address
+    # Use the local part of the email address as the username.
+    if username.include? "@"
+      logger.debug("Mapping #{username} to a username")
+      username = username.rpartition("@")[0]
+    end
+    return username
+  end
+
   def self.find_with_omniauth(auth)
     if auth
-      email = auth['email']
-      user = find_by_email(email)
+      username = derive_username(auth)
+
+      user = find_by_login(username)
       if user
         user.mark_login!
 
         return user
-      end
-
-      username = auth['username'] || auth['nickname']
-      if username.include? '@'
-        user = find_by_email(username)
-
-        if user
-          user.mark_login!
-
-          return user
-        end
       end
     end
   end

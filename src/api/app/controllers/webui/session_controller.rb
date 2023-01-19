@@ -1,7 +1,7 @@
 class Webui::SessionController < Webui::WebuiController
   before_action :kerberos_auth, only: [:new]
 
-  skip_before_action :check_anonymous, only: [:new, :create, :sso, :sso_callback, :sso_confirm, :do_sso_confirm]
+  skip_before_action :check_anonymous, only: [:new, :create, :sso, :sso_callback]
 
   def new
     switch_to_webui2
@@ -46,13 +46,25 @@ class Webui::SessionController < Webui::WebuiController
 
   def sso_callback
     @auth_hash = request.env['omniauth.auth']
-    user = User.find_with_omniauth(@auth_hash['info'])
+    auth_info = @auth_hash['info']
+    auth_info['provider'] = @auth_hash['provider']
+
+    user = User.find_with_omniauth(auth_info)
 
     unless user
-      session[:auth] = @auth_hash['info']
-      session[:auth]['provider'] = @auth_hash['provider']
-      redirect_to(sso_confirm_path)
-      return
+      username = User.derive_username(auth_info)
+
+      begin
+        user = User.create_with_omniauth(auth_info, username)
+      rescue ActiveRecord::ActiveRecordError => e
+        Rails.logger.error "Failed to create #{username}: '#{e.inspect}'"
+        Rails.logger.debug "auth_info: '#{auth_info.inspect}'"
+      end
+
+      unless user
+        flash[:error] = "Failed to create a user"
+        redirect_to root_path
+      end
     end
 
     unless user.is_active?
@@ -67,74 +79,6 @@ class Webui::SessionController < Webui::WebuiController
 
     redirect_on_login
   end
-
-  def sso_confirm
-    switch_to_webui2
-    auth_info = session[:auth]
-
-    if !auth_info
-      redirect_to sso_path
-      return
-    end
-
-    # Try to derive a username from the information available,
-    # falling back to full name if nothing else works
-    @derived_username = auth_info['username'] ||
-                        auth_info['nickname'] ||
-                        auth_info['email'] ||
-                        auth_info['name']
-
-    # Some providers set username or nickname to an email address
-    # Derive the username from the local part of the email address,
-    # if possible. The full name with spaces replaced by underscores
-    # is the last resort fallback.
-    @derived_username = @derived_username.rpartition("@")[0] if @derived_username.include? "@"
-    @derived_username = @derived_username.gsub(' ', '_')
-  end
-
-  def do_sso_confirm
-    required_parameters :login
-    auth_info = session[:auth]
-
-    if !auth_info
-      redirect_to sso_path
-      return
-    end
-
-    existing_user = User.find_by_login(params[:login])
-    if existing_user
-      flash[:error] = "Username #{params[:login]} is already taken, choose a different one"
-      redirect_to sso_confirm_path
-      return
-    end
-
-    begin
-      user = User.create_with_omniauth(auth_info, params[:login])
-    rescue ActiveRecord::ActiveRecordError
-      flash[:error] = "Invalid username, please try a different one"
-      redirect_to sso_confirm_path
-      return
-    end
-
-    unless user
-      flash[:error] = "Cannot create user"
-      redirect_to root_path
-      return
-    end
-
-    unless user.is_active?
-      RabbitmqBus.send_to_bus('metrics', 'login,access_point=webui,failure=disabled value=1')
-      redirect_to(root_path, error: 'Your account needs to be confirmed by the administrator.')
-      return
-    end
-
-    User.session = user
-    session[:login] = user.login
-    Rails.logger.debug "Authenticated user '#{user.login}'"
-
-    redirect_on_login
-  end
-
 
   private
 

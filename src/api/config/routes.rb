@@ -426,8 +426,6 @@ OBSApi::Application.routes.draw do
       post 'session/create' => :create
       get 'session/sso' => :sso, as: 'sso'
       get 'session/sso/:provider/callback' => :sso_callback
-      get 'session/sso/:provider/confirm' => :sso_confirm, as: 'sso_confirm'
-      post 'session/sso/:provider/confirm' => :do_sso_confirm
       delete 'session/destroy' => :destroy
     end
 
