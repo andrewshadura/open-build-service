@@ -36,6 +36,8 @@ spec:
             - name: OBS_BACKEND_HOST
               value: {{ include "backend.hostname" . | quote }}
             {{- if .Values.global.frontend }}
+            - name: OBS_EXTERNAL_HOST
+              value: {{ default "" .Values.global.frontend.external_host | quote }}
             - name: OBS_FRONTEND_WORKERS
               value: {{ default 4 .Values.global.frontend.workers | quote }}
             - name: OBS_LOG_LEVEL

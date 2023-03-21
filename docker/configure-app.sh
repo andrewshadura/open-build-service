@@ -33,6 +33,10 @@ if [ ! -z "$OBS_BACKEND_HOST" ]; then
     sed -i s/"source_host: localhost"/"source_host: ${OBS_BACKEND_HOST}"/g config/options.yml
 fi
 
+if [ ! -z "$OBS_EXTERNAL_HOST" ]; then
+    sed -i s/"#*external_frontend_host: .*"/"external_frontend_host: ${OBS_EXTERNAL_HOST}"/g config/options.yml
+fi
+
 if [ ! -z "$OBS_MEMCACHE_HOST" ]
 then
     sed -i "s/memcached_host: .*/memcached_host: $OBS_MEMCACHE_HOST/g" config/options.yml

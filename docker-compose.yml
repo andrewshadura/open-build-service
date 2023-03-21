@@ -48,6 +48,7 @@ services:
       DB_USER: obs-api
       DB_PASSWORD: someobs
       OBS_BACKEND_HOST: backend
+      OBS_EXTERNAL_HOST: build.example.org
       OBS_MEMCACHE_HOST: cache
       OBS_FRONTEND_WORKERS: 4
     ports:
