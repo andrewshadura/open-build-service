@@ -1,5 +1,16 @@
 #!/bin/sh -e
 
-sed 's/^deb /deb-src /' /etc/apt/sources.list > /etc/apt/sources.list.d/sources.list
+if [ -f /etc/apt/sources.list ]
+then
+	sed 's/^deb /deb-src /' /etc/apt/sources.list > /etc/apt/sources.list.d/sources.list
+fi
+
+for f in /etc/apt/sources.list.d/*.sources
+do
+	if [ -e "$f" ]
+	then
+		sed -i 's/Types: deb$/Types: deb deb-src/' "$f"
+	fi
+done
 
 apt-get update
