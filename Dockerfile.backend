@@ -99,8 +99,6 @@ COPY docker/cron/cron.conf /etc/supervisor/conf.d/
 COPY docker/cron/aptly_cleanup /etc/cron.d/aptly_cleanup
 RUN crontab /etc/cron.d/aptly_cleanup
 
-VOLUME /etc/obs
-
 COPY docker/services/aptly/aptly.conf /etc/obs/aptly.conf
 RUN /opt/configure-backend-user.sh
 
