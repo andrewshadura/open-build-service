@@ -2,6 +2,9 @@ my @reprepro_releases = ("v2022");
 my @aptly_releases = ("v2023");
 my @apertis_components = ("target", "development", "sdk");
 my $apertis_prefix = "shared/apertis/public/apertis";
+my $aptly_server = {
+  'url' => 'http://aptly:8080',
+};
 
 our $publishedhook_use_regex = 1;
 our $publishedhook = {};
@@ -40,6 +43,10 @@ our $aptly_config = {};
 
 foreach $release (@aptly_releases) {
   foreach $component (@apertis_components) {
+    $aptly_config->{$apertis_prefix}{$release}{"aptly_server"} = $aptly_server;
+    $aptly_config->{$apertis_prefix}{$release."-updates"}{"aptly_server"} = $aptly_server;
+    $aptly_config->{$apertis_prefix}{$release."-security"}{"aptly_server"} = $aptly_server;
+
     $aptly_config->{$apertis_prefix}{$release}{"components"}{$component} = {
       "project" => "apertis:".$release.":".$component,
       "repository" => "default",

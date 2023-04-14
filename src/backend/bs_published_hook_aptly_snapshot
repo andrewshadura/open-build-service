@@ -48,20 +48,6 @@ die("can't find related aptly distribution for $projid/$repoid\n") if !$distro_c
 my $prefix = $distro_config->{'prefix'};
 my $distribution = distribution_basename($distro_config->{'distribution'});
 
-my $rootDir = BSAptly::aptly_get_config('rootDir');
-die("failed to read Aptly config rootDir\n") if !$rootDir;
-my $distsDir = "$rootDir/public/$prefix/dists";
-
 foreach my $suffix (@suffixes) {
   do_distro_snapshot($prefix, $distribution.$suffix, $timestamp);
-  my $targetSnapshot = "$distsDir/".BSAptly::aptly_snapshot_gen_distro($distribution.$suffix, $timestamp);
-  my $targetDir = dirname($targetSnapshot);
-  if (! -d $targetDir) {
-    warn("$targetDir doesn't exist, ignoring suffix $suffix\n");
-    next;
-  }
-  my $linkName = "$distsDir/".BSAptly::aptly_snapshot_gen_distro($distribution.$suffix, 'latest.txt');
-  open(FH, '>', "$linkName") or die("failed to write $linkName file: $!");
-  print FH "$timestamp";
-  close(FH);
 }

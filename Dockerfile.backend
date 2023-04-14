@@ -2,25 +2,6 @@
 ARG DEBIAN_FRONTEND=noninteractive
 ARG GOPATH=/usr/local/go
 
-# Build aplty
-FROM debian:bullseye-slim as aptly-builder
-ENV LC_ALL=C.UTF-8
-ARG DEBIAN_FRONTEND
-ARG GOPATH
-
-RUN apt-get update && \
-      apt-get install -y --no-install-recommends \
-          build-essential \
-          ca-certificates \
-          gcc \
-          git \
-          golang-go \
-          libc6-dev
-
-RUN git clone -b collabora/production https://gitlab.collabora.com/obs/aptly.git $GOPATH/src/gitlab.collabora.com/obs/aptly \
- && cd $GOPATH/src/gitlab.collabora.com/obs/aptly \
- && make install
-
 FROM rust:1.70-bullseye as aptly-tools-builder
 RUN git clone https://github.com/collabora/aptly-rest-tools \
               -b v0.0.2 --depth=1 \
@@ -41,7 +22,6 @@ RUN apt-get update \
         apt-utils \
         adduser \
         ca-certificates \
-        cron \
         curl \
         devscripts \
         diffutils \
@@ -102,14 +82,8 @@ RUN test -f /usr/lib/obs/server/build/Build/Modules.pm
 COPY docker/services/backend/*.conf /etc/supervisor/conf.d/
 COPY docker/ /opt/
 
-COPY docker/cron/cron.conf /etc/supervisor/conf.d/
-COPY docker/cron/aptly_cleanup /etc/cron.d/aptly_cleanup
-RUN crontab /etc/cron.d/aptly_cleanup
-
-COPY docker/services/aptly/aptly.conf /etc/obs/aptly.conf
 RUN /opt/configure-backend-user.sh
 
-COPY --from=aptly-builder $GOPATH/bin/aptly /usr/local/bin/aptly
 COPY --from=aptly-tools-builder \
   /tmp/aptly-rest-tools/target/release/aptlyctl \
   /tmp/aptly-rest-tools/target/release/obs2aptly \

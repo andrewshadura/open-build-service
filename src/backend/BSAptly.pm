@@ -24,6 +24,8 @@ BEGIN {
     my $distros = $BSConfig::aptly_config->{$prefix};
     foreach my $distro (keys %{ $distros }) {
       my $distro_config = $distros->{$distro};
+      die "$prefix -> $distro does not have aptly_server defined" if !defined $distro_config->{'aptly_server'};
+
       my $distro_components = $distro_config->{'components'};
       foreach my $component (keys %{ $distro_components }) {
         my $component_config = $distro_components->{$component};
@@ -36,19 +38,17 @@ BEGIN {
   }
 }
 
-# By default, aptly will try to read configuration from ~/.aptly.conf
-# OBS runs as `obsrun` user, but HOME is pointing to /root/, so this will
-# raise a permission error. Thus, set the default system configuration file.
-use constant APTLY_CONFIG_FILE => '/etc/obs/aptly.conf';
-
-sub aptly_exec {
-  my @args = ('aptly', "-config=".APTLY_CONFIG_FILE, @_);
+sub api_tool_exec {
+  my $aptly_server = shift;
+  my @args = @_;
   my $pid;
 
   if (!defined($pid = fork())) {
     die "Failed to fork child: $!";
   } elsif ($pid == 0) {
     open(STDERR, '>&STDOUT');
+    $ENV{'APTLY_API_URL'} = $aptly_server->{'url'};
+    $ENV{'APTLY_API_TOKEN'} = $aptly_server->{'token'} if defined $aptly_server->{'token'};
     my $timestamp = strftime "%Y-%m-%d %H:%M:%S", gmtime;
     print STDOUT "$timestamp: ".join(' ', @args)."\n";
     exec(@args) || die("Failed to exec $args[0]: $!\n");
@@ -56,6 +56,16 @@ sub aptly_exec {
     waitpid($pid, 0) == $pid || die("Failed on waitpid $pid: $!\n");
     return $?;
   }
+}
+
+sub aptlyctl_exec {
+  my $aptly_server = shift;
+  api_tool_exec($aptly_server, 'aptlyctl', @_);
+}
+
+sub obs2aptly_exec {
+  my $aptly_server = shift;
+  api_tool_exec($aptly_server, 'obs2aptly', @_);
 }
 
 # Aptly configuration helpers
@@ -83,19 +93,6 @@ sub aptly_repo_get_component {
     my $component_config = $distro_components->{$component};
     if ($component_config->{'project'} eq $projid && $component_config->{'repository'} eq $repoid) {
       return $component;
-    }
-  }
-  return undef;
-}
-
-sub aptly_get_config {
-  my ($configid) = @_;
-  my @args = ('aptly', "-config=".APTLY_CONFIG_FILE,
-    'config', 'show');
-  my $args = join(' ', @args);
-  foreach my $line (`$args`) {
-    if ($line =~ /^\s*"$configid":\s*"(\S*)",$/) {
-      return $1;
     }
   }
   return undef;
@@ -147,8 +144,7 @@ sub aptly_publish_repo {
   # when publishing.
   my ($prefix, $distribution) = @_;
   my %archs;
-  my @components;
-  my @repos;
+  my @to_publish;
 
   my $distro_config = aptly_distro_get_config($prefix, $distribution);
   my $distro_components = $distro_config->{'components'};
@@ -162,8 +158,7 @@ sub aptly_publish_repo {
 
     next unless $obs_repo;
 
-    push @components, $component;
-    push @repos, "$projid/$repoid";
+    push @to_publish, "$projid/$repoid//$component";
     foreach my $arch (@{ $obs_repo->{'arch'} }) {
       if (BSUtil::enabled($repoid, $obs_proj->{'publish'}, 1, $arch)) {
         $archs{$arch} = 1;
@@ -175,89 +170,57 @@ sub aptly_publish_repo {
     return 0;
   }
 
-  my $gpgkey = $distro_config->{'gpg-key'} || $BSConfig::aptly_defconfig->{'gpg-key'} || "";
+  my $gpgkey = $distro_config->{'gpg-key'} || $BSConfig::aptly_defconfig->{'gpg-key'};
 
-  my @args = ('publish', 'repo',
-    "-architectures=".join(',', map { Build::Deb::basearch($_) } (('source'), keys %archs)),
-    "-distribution=$distribution",
-    "-component=".join(',', @components),
-    "-gpg-key=$gpgkey",
-    '-skip-contents',
-    '-skip-bz2',
-    @repos, $prefix);
-  return aptly_exec(@args);
+  my @args = ('publish', 'create', 'repo',
+    "--architectures=".join(',', map { Build::Deb::basearch($_) } (('source'), keys %archs)),
+    "--distribution=$distribution",
+    '--skip-contents',
+    '--skip-bz2',
+    $prefix, @to_publish);
+  push @args, "--gpg-key=$gpgkey" if $gpgkey;
+  return aptlyctl_exec($distro_config->{'aptly_server'}, @args);
 }
 
 # Aptly publish command wrappers
 
-sub aptly_publish_drop {
-  my ($prefix, $distribution) = @_;
-  my @args = ('publish', 'drop', $distribution, $prefix);
-  return aptly_exec(@args);
-}
-
 sub aptly_publish_drop_check {
   my ($prefix, $distribution) = @_;
-  if (!aptly_is_published($prefix, $distribution)) {
-    return 0;
-  }
-  return aptly_publish_drop($prefix, $distribution);
+  my $distro_config = aptly_distro_get_config($prefix, $distribution);
+  my @args = ('publish', 'drop', '--ignore-if-missing', $prefix, $distribution);
+  return aptlyctl_exec($distro_config->{'aptly_server'}, @args);
 }
 
 sub aptly_publish_update {
   my ($prefix, $distribution) = @_;
   # Update an already published repository distribution
   my $distro_config = aptly_distro_get_config($prefix, $distribution);
-  my $gpgkey = $distro_config->{'gpg-key'} || $BSConfig::aptly_defconfig->{'gpg-key'} || "";
+  my $gpgkey = $distro_config->{'gpg-key'} || $BSConfig::aptly_defconfig->{'gpg-key'};
   my @args = ('publish', 'update',
-    "-gpg-key=$gpgkey",
-    '-skip-contents',
-    '-skip-bz2',
-    $distribution, $prefix);
-  return aptly_exec(@args);
-}
-
-sub aptly_is_published {
-  my ($prefix, $distribution) = @_;
-  my @args = ('publish', 'show', $distribution, $prefix);
-  return aptly_exec(@args) == 0;
+    '--skip-contents',
+    '--skip-bz2',
+    $prefix, $distribution);
+  push @args, "--gpg-key=$gpgkey" if $gpgkey;
+  return aptlyctl_exec($distro_config->{'aptly_server'}, @args);
 }
 
 # Aptly snapshot command wrappers
 
 sub aptly_snapshot_create {
   my ($projid, $repoid, $timestamp) = @_;
-  my @args = ('snapshot', 'create',
-    "$projid/$repoid/$timestamp",
-    'from', 'repo', "$projid/$repoid");
-  return aptly_exec(@args);
-}
-
-sub aptly_snapshot_drop {
-  my ($projid, $repoid, $timestamp) = @_;
-  my @args = ('snapshot', 'drop',
+  my $repo_config = aptly_repo_get_config($projid, $repoid);
+  my @args = ('repo', 'snapshot',
+    "$projid/$repoid",
     "$projid/$repoid/$timestamp");
-  return aptly_exec(@args);
+  return aptlyctl_exec($repo_config->{'aptly_server'}, @args);
 }
 
 sub aptly_snapshot_exists {
   # Check if aptly snapshot exists
   my ($projid, $repoid, $timestamp) = @_;
-  my @args = ('snapshot', 'show', "$projid/$repoid/$timestamp");
-  return aptly_exec(@args) == 0;
-}
-
-sub aptly_snapshot_gen_distro {
-  my ($distribution, $timestamp) = @_;
-  return "$distribution/snapshots/$timestamp",
-}
-
-sub aptly_snapshot_list {
-  # List all snapshots in machine-readable format
-  my @args = ('aptly', "-config=".APTLY_CONFIG_FILE,
-    'snapshot', 'list', '-raw');
-  my $args = join(' ', @args);
-  return `$args`;
+  my $repo_config = aptly_repo_get_config($projid, $repoid);
+  my @args = ('snapshot', 'test-exists', "$projid/$repoid/$timestamp");
+  return aptlyctl_exec($repo_config->{'aptly_server'}, @args) == 0;
 }
 
 sub aptly_distro_snapshot {
@@ -279,29 +242,11 @@ sub aptly_distro_snapshot {
   }
 }
 
-sub aptly_distro_snapshot_drop {
-  # Drop snapshots for all the repositories in an aptly prefix/distribution.
-  my ($prefix, $distribution, $timestamp) = @_;
-  my $distro_config = aptly_distro_get_config($prefix, $distribution);
-  my $distro_components = $distro_config->{'components'};
-
-  foreach my $component (keys %$distro_components) {
-    my $component_config = $distro_components->{$component};
-    my $projid = $component_config->{'project'};
-    my $repoid = $component_config->{'repository'};
-
-    next unless aptly_snapshot_exists($projid, $repoid, $timestamp);
-
-    aptly_snapshot_drop($component_config->{'project'}, $component_config->{'repository'}, $timestamp);
-  }
-}
-
 sub aptly_publish_snapshot {
   # Publish snapshots for the repositories in an aptly prefix/distribution.
   my ($prefix, $distribution, $timestamp) = @_;
   my %archs;
-  my @components;
-  my @snapshots;
+  my @to_publish;
 
   my $distro_config = aptly_distro_get_config($prefix, $distribution);
   my $distro_components = $distro_config->{'components'};
@@ -316,8 +261,7 @@ sub aptly_publish_snapshot {
     next unless $obs_repo;
     next unless aptly_snapshot_exists($projid, $repoid, $timestamp);
 
-    push @components, $component;
-    push @snapshots, "$projid/$repoid/$timestamp";
+    push @to_publish, "$projid/$repoid/$timestamp//$component";
     foreach my $arch (@{ $obs_repo->{'arch'} }) {
       if (BSUtil::enabled($repoid, $obs_proj->{'publish'}, 1, $arch)) {
         $archs{$arch} = 1;
@@ -329,80 +273,38 @@ sub aptly_publish_snapshot {
     return 0;
   }
 
-  my $gpgkey = $distro_config->{'gpg-key'} || $BSConfig::aptly_defconfig->{'gpg-key'} || "";
+  my $gpgkey = $distro_config->{'gpg-key'} || $BSConfig::aptly_defconfig->{'gpg-key'};
+  my @args = ('publish', 'create', 'snapshot',
+    "--architectures=".join(',', map { Build::Deb::basearch($_) } (('source'), keys %archs)),
+    "--distribution=$distribution/snapshots/$timestamp",
+    '--skip-contents',
+    '--skip-bz2',
+    $prefix, @to_publish);
+  push @args, "--gpg-key=$gpgkey" if $gpgkey;
 
-  my @args = ('publish', 'snapshot',
-    "-architectures=".join(',', map { Build::Deb::basearch($_) } (('source'), keys %archs)),
-    "-distribution=".aptly_snapshot_gen_distro($distribution, $timestamp),
-    "-component=".join(',', @components),
-    "-gpg-key=$gpgkey",
-    '-skip-contents',
-    '-skip-bz2',
-    @snapshots, $prefix);
-  return aptly_exec(@args);
+  return aptlyctl_exec($distro_config->{'aptly_server'}, @args);
 }
-
-sub aptly_unpublish_snapshot {
-  # Unpublish snapshots for the repositories in an aptly prefix/distribution.
-  my ($prefix, $distribution, $timestamp) = @_;
-  return aptly_publish_drop($prefix, aptly_snapshot_gen_distro($distribution, $timestamp));
-}
-
-sub aptly_unpublish_snapshot_check {
-  # Unpublish snapshots for the repositories in an aptly prefix/distribution.
-  my ($prefix, $distribution, $timestamp) = @_;
-  return aptly_publish_drop_check($prefix, aptly_snapshot_gen_distro($distribution, $timestamp));
-}
-
-sub aptly_publish_list {
-  # List all published endpoints in machine-readable format
-  my @args = ('aptly', "-config=".APTLY_CONFIG_FILE,
-    'publish', 'list', '-raw');
-  my $args = join(' ', @args);
-  return `$args`;
-}
-
-# Aptly db command wrappers
-
-sub aptly_db_cleanup {
-  # Cleanup aptly database
-  my @args = ('db', 'cleanup');
-  return aptly_exec(@args);
-}
-
 
 # Aptly repo command wrappers
 
-sub aptly_repo_exists {
-  # Check if aptly repository exists
-  my ($projid, $repoid) = @_;
-  my @args = ('repo', 'show', "$projid/$repoid");
-  return aptly_exec(@args) == 0;
-}
-
 sub aptly_repo_create {
   my ($projid, $repoid, $distribution, $component) = @_;
+  my $repo_config = aptly_repo_get_config($projid, $repoid);
   my @args = ('repo', 'create',
-    "-distribution=$distribution",
-    "-component=$component",
+    "--distribution=$distribution",
+    "--component=$component",
     "$projid/$repoid");
-  return aptly_exec(@args);
+  return aptlyctl_exec($repo_config->{'aptly_server'}, @args);
 }
 
 sub aptly_repo_drop {
   # Remove aptly repository. Use -force flag to remove even if there's
   # a related snapshot based on this repo.
   my ($projid, $repoid) = @_;
-  my @args = ('repo', 'drop', '-force',
+  my $repo_config = aptly_repo_get_config($projid, $repoid);
+  my @args = ('repo', 'drop', '--force',
     "$projid/$repoid");
-  return aptly_exec(@args);
-}
-
-sub aptly_repo_clean {
-  # Remove all packages in aptly repository.
-  my ($projid, $repoid) = @_;
-  my @args = ('repo', 'remove', "$projid/$repoid", 'Name');
-  return aptly_exec(@args);
+  return aptlyctl_exec($repo_config->{'aptly_server'}, @args);
 }
 
 # Hook functions for OBS
@@ -447,38 +349,10 @@ sub aptly_delproject {
 }
 
 sub aptly_update_repo {
-  # Add new packages to an existent aptly repository.
-  # All the previous versions are removed.
-  my ($projid, $repoid, $config, $extrep, $added_ref, $removed_ref) = @_;
-  my @added = @{ $added_ref };
-  my @removed = @{ $removed_ref };
-  my ($pkg, $version, $arch, $pkgtype);
-  my @args;
-
-  # Remove previous versions
-  for my $f (@removed) {
-    if ($f =~ /^.*\/(.*)_(.*)_(.*)\.([u]?deb)$/) {
-      ($pkg, $version, $arch, $pkgtype) = ($1, $2, $3, $4);
-    } elsif ($f =~ /^(.*)_(.*)\.dsc$/) {
-      ($pkg, $version, $arch, $pkgtype) = ($1, $2, "source", "source");
-    } else {
-      next;
-    }
-    @args = ('repo', 'remove', "$projid/$repoid",
-      "Name (=\"$pkg\"), Version (<=\"$version\"), \$Architecture (=\"$arch\"), \$PackageType (=\"$pkgtype\")");
-    aptly_exec(@args);
-  }
-
-  # Add new packages
-  for my $f (@added) {
-    if (($f =~ /^.*\/(.*)_(.*)_(.*)\.([u]?deb)$/) or ($f =~ /^(.*)_(.*)\.dsc$/)) {
-      my $file = "$extrep/$f";
-      @args = ('repo', 'add', "$projid/$repoid", $file);
-      aptly_exec(@args);
-    }
-  }
-
-  return aptly_publish_update($config->{'prefix'}, $config->{'distribution'});
+  my ($projid, $repoid, $config, $extrep) = @_;
+  my $repo_config = aptly_repo_get_config($projid, $repoid);
+  return obs2aptly_exec($repo_config->{'aptly_server'}, "$projid/$repoid", $extrep)
+    || aptly_publish_update($config->{'prefix'}, $config->{'distribution'});
 }
 
 1;

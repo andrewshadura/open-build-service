@@ -2734,8 +2734,7 @@ sub publish {
   if ($repotype{'debian'}) {
     my $aptly_config = BSAptly::aptly_repo_get_config($projid, $repoid);
     if ($aptly_config) {
-	my @removed = (@db_deleted, @deleted);
-	BSAptly::aptly_update_repo($projid, $repoid, $aptly_config, $extrep, \@changed, \@removed);
+	BSAptly::aptly_update_repo($projid, $repoid, $aptly_config, $extrep);
     } elsif ($BSConfig::reprepository && $BSConfig::reprepository->{$prp}) {
 	updaterepo_reprepro($prp, $extrep, @changed);
     } else {

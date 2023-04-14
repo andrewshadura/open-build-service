@@ -1,1 +1,0 @@
-0 0 * * 0 obsrun /usr/lib/obs/server/bs_aptly_cleanup

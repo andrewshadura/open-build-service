@@ -15,12 +15,23 @@ services:
   cache:
     image: memcached:1.6-alpine
 
+  aptly:
+    image: registry.gitlab.collabora.com/obs/aptly-repository/aptly
+    hostname: aptly
+    restart: unless-stopped
+    volumes:
+      - aptly-storage:/aptly/data
+    expose:
+      - '8080'
+    ports:
+      # Expose on port 8088, because 8080 is already taken by the backend.
+      - "127.0.0.1:8088:8080"
+
   backend:
     image: registry.gitlab.collabora.com/obs/open-build-service/backend
     hostname: backend
     restart: unless-stopped
     volumes:
-      - aptly-storage:/srv/obs/aptly
       - backend-storage:/srv/obs
       - backend-logs:/srv/obs/log
     environment:

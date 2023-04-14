@@ -140,34 +140,5 @@ default to `/usr/lib/obs/server/bs_published_hook_aptly_snapshot`.
 
 ### aptly database cleanup
 
-Aptly needs to run regularly run a database cleanup to remove unused data.
-The following external script should be scheduled to be called periodically:
-`./src/backend/bs_aptly_cleanup`, which is installed by default at
-`/usr/lib/obs/server/bs_aptly_cleanup`.
-
-### reprepro migration
-
-The script `./src/backend/bs_aptly_migration` can be used to migrate reprepro
-repositories and snapshots to aptly. Note that this script needs to be run as
-`obsrun` user.
-
-Before running this script, OBS configuration must be updated moving the
-repositories from reprepro backend to aptly. As reference, check
-`./tests/aptly/BSConfig.local.pm`.
-
-OBS services (srcserver and publisher) should be disabled before running this
-script and re-enabled afterwards, e.g.:
-
-```
-$ supervisorctl stop srcserver
-$ supervisorctl stop publisher
-[...]
-$ supervisorctl start srcserver
-$ supervisorctl start publisher
-```
-
-OBS projects are not modified by this script. It is recommended to trigger an
-entire rebuild after the migration.
-
-Reprepro repositories and snapshots are not modified by this script. These
-should be cleaned up from the filesystem afterwards.
+Aptly needs to regularly run a database cleanup to remove unused data,
+which can be accomplished by running `aptlyctl db-cleanup` periodically.

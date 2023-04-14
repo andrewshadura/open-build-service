@@ -18,7 +18,6 @@ debian_prj_name="Debian:Bullseye:main"
 debian_repo="main"
 debian_url="http://deb.debian.org/debian/bullseye/main"
 
-aptly="aptly -config=/etc/obs/aptly.conf"
 bs_published_hook="/usr/lib/obs/server/bs_published_hook_aptly_snapshot"
 oscrc_file="$ABS_ROOT_DIR/oscrc"
 osc="osc -c $oscrc_file"
@@ -217,7 +216,7 @@ check_bins () {
 
 	for bin_file in $bin_files; do
 		echo "Checking package binary: $bin_file"
-		if ! $aptly repo search "$repo" "$bin_file"; then
+		if ! aptlyctl repo search --exit-code "$repo" "$bin_file"; then
 			echo "ERROR: aptly binary not found" >&2
 			exit 1
 		fi

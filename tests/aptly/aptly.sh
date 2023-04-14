@@ -7,6 +7,8 @@ ABS_ROOT_DIR="$(realpath $ROOT_DIR)"
 
 . $ABS_ROOT_DIR/common.sh
 
+export APTLY_API_URL=http://aptly:8080
+
 prj_arch="x86_64"
 prj_components="target development sdk"
 prj_distro="v2023"
@@ -18,7 +20,6 @@ debian_prj_name="Debian:Bullseye:main"
 debian_repo="main"
 debian_url="http://deb.debian.org/debian/bullseye/main"
 
-aptly="aptly -config=/etc/obs/aptly.conf"
 bs_published_hook="/usr/lib/obs/server/bs_published_hook_aptly_snapshot"
 oscrc_file="$ABS_ROOT_DIR/oscrc"
 osc="osc -c $oscrc_file"
@@ -42,14 +43,14 @@ for prj_component in $prj_components; do
 	get_prjconf $prj_distro | $osc meta prjconf "$project" -F -
 	repo="$project/$prj_repo"
 	echo "Checking aptly repository: $repo"
-	if ! $aptly repo show "$repo"; then
+	if ! aptlyctl repo test-exists "$repo"; then
 		echo "ERROR: aptly repository not created" >&2
 		exit 1
 	fi
 done
 
-echo "Checking aptly distribution publish: $prj_distro $prj_public_prefix"
-if ! $aptly publish show $prj_distro $prj_public_prefix; then
+echo "Checking aptly distribution publish: $prj_public_prefix $prj_distro"
+if ! aptlyctl publish test-exists $prj_public_prefix $prj_distro; then
 	echo "ERROR: aptly distribution not published" >&2
 	exit 1
 fi
@@ -81,14 +82,14 @@ for prj_component in $prj_components; do
 	project="$prj_osname:$prj_distro:$prj_component"
 	snapshot="$project/$prj_repo/$timestamp"
 	echo "Checking aptly snapshot: $snapshot"
-	if ! $aptly snapshot show $snapshot; then
+	if ! aptlyctl snapshot test-exists $snapshot; then
 		echo "ERROR: aptly snapshot not created" >&2
 		exit 1
 	fi
 done
 
-echo "Checking aptly snapshot publish: $prj_distro $prj_public_prefix"
-if ! $aptly publish show "$prj_distro/snapshots/$timestamp" $prj_public_prefix; then
+echo "Checking aptly snapshot publish: $prj_public_prefix $prj_distro"
+if ! aptlyctl publish test-exists $prj_public_prefix "$prj_distro/snapshots/$timestamp"; then
 	echo "ERROR: aptly snapshot not published" >&2
 	exit 1
 fi
