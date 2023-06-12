@@ -4,7 +4,7 @@ project=$1
 pkg=$2
 prj_repo=${3:-main}
 prj_arch=${4:-x86_64}
-iterations=30
+iterations=${5:-30}
 wait=30
 
 echo "Checking build result: $project $pkg $prj_repo $prj_arch"
