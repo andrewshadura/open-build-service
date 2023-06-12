@@ -10,6 +10,26 @@ cd "$dir"
 
 apt-get source --download-only dash
 
+tarball=$(echo dash_*.orig.tar.*)
+# pretend the tarball is signed
+echo signature > $tarball.asc
+
+pkgver=${tarball%.orig.tar.*}
+ver=${pkgver#dash_}
+
+# create fake extra tarball
+mkdir vendor
+tar -zcf dash_$ver.orig-vendor.tar.gz vendor/
+
+# pretend this is a valid signature
+echo signature > dash_$ver.orig-vendor.tar.gz.asc
+
+(
+	dpkg-source -x *dsc
+	cd dash-$ver
+	dpkg-buildpackage -d -S
+)
+
 osc dput bullseye-derivative *.dsc
 
 cd "$OLDPWD"
@@ -20,3 +40,15 @@ then
 	docker-compose exec -T backend supervisorctl restart all
 	wait-for-pkg bullseye-derivative dash main x86_64
 fi
+
+wait-for-file -d storage/backend/repos/bullseye-derivative/main
+
+wait-for-file -f storage/backend/repos/bullseye-derivative/main/$tarball
+
+ls storage/backend/repos/bullseye-derivative/main -lR
+
+set -x
+
+test -f storage/backend/repos/bullseye-derivative/main/$tarball.asc
+test -f storage/backend/repos/bullseye-derivative/main/dash_$ver.orig-vendor.tar.gz
+test -f storage/backend/repos/bullseye-derivative/main/dash_$ver.orig-vendor.tar.gz.asc

@@ -1,0 +1,23 @@
+#!/bin/sh
+
+iterations=30
+wait=30
+
+echo "Checking for file presence: $@"
+
+for i in $(seq $iterations)
+do
+	echo test "$@"
+	if test "$@"
+	then
+		echo "Condition reached." >&2
+		break
+	fi
+	if [ $i -eq $iterations ]
+	then
+		echo "ERROR: file failed to appear within the time limit!" >&2
+		exit 1
+	fi
+	echo "Sleeping ${wait}s (iteration $i/$iterations)"
+	sleep $wait
+done

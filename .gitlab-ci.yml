@@ -96,6 +96,11 @@ worker:
         worker:
           image: $CI_REGISTRY_IMAGE/worker:$TAG_SHA
       volumes:
+        backend-storage:
+          driver_opts:
+            type: none
+            o: bind
+            device: './storage/backend'
         backend-logs:
           driver_opts:
             type: none
@@ -114,6 +119,7 @@ worker:
   before_script:
     - apt update && apt install -y --no-install-recommends
         curl
+        debhelper
         docker-compose
         docker.io
         dpkg-dev
@@ -123,7 +129,7 @@ worker:
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
     - docker info
     - echo "$COMPOSE_OVERLAY" > docker-compose.override.yml
-    - mkdir -p logs/backend logs/frontend logs/worker
+    - mkdir -p logs/backend logs/frontend logs/worker storage/backend
     - |
       cat << EOF > ~/.oscrc
       [general]
