@@ -1,4 +1,5 @@
 stages:
+  - sanity-check
   - docker
   - test
   - tag
@@ -6,6 +7,18 @@ stages:
 variables:
   TAG_SHA: $CI_COMMIT_SHORT_SHA-P$CI_PIPELINE_ID
   GIT_SUBMODULE_STRATEGY: recursive
+
+check-vendored:
+  stage: sanity-check
+  tags:
+    - lightweight
+  image: debian:bookworm-slim
+  script:
+    - |
+      test ! -d src/api/vendor/cache || (
+        echo 'Vendored gems detected, aborting build'
+        false
+      )
 
 .build-docker-image:
   stage: docker

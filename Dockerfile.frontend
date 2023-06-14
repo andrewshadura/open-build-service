@@ -22,6 +22,8 @@ COPY --from=base $INSTALLDIR/src/api/public/assets $INSTALLDIR/src/api/public/as
 
 WORKDIR $INSTALLDIR/src/api
 
+RUN rm -rf vendor/cache
+
 # Add local Bootstrap 3 copy for error pages
 RUN install -D -t public/css /usr/share/javascript/bootstrap/css/bootstrap.min.css
 

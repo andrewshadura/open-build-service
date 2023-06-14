@@ -1,0 +1,29 @@
+#
+# Open Build Service 2.10.16
+#
+
+Please read the README.md file for initial installation
+instructions or use the OBS Appliance from
+
+  http://openbuildservice.org/download/
+
+The dist/README.UPDATERS file has information for people updating
+from a previous OBS release.
+
+
+Features
+========
+
+Backend:
+ * Support for qemu system emulated worker instances
+
+Bugfixes
+========
+
+Frontend:
+ * Update Nokogiri to version 1.13.6
+   - CVE-2022-29181 Improper Handling of Unexpected Data Type.
+ * Update rack to 2.2.3.1
+   - CVE-2022-30122 Denial of Service Vulnerability in Rack Multipart Parsing
+   - CVE-2022-30123 Possible shell escape sequence injection
+

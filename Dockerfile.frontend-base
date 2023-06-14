@@ -41,6 +41,7 @@ RUN apt-get update \
 RUN apt-get update \
  && apt-get install -y \
         default-libmysqlclient-dev \
+        libffi-dev \
         libldap2-dev \
         libsasl2-dev \
         libxml2-dev \
@@ -66,6 +67,10 @@ ARG NOKOGIRI_USE_SYSTEM_LIBRARIES=1
 
 RUN bundle config --global without assets:development:test
 
+RUN bundle config build.ffi --enable-system-libffi; \
+    bundle config build.nokogiri --use-system-libraries; \
+    bundle config build.nio4r --with-cflags='-Wno-return-type'
+
 RUN bundle install --jobs=$(nproc) --retry=3 \
  && rm -rf \
     /var/lib/gems/*/cache/ \
@@ -83,11 +88,17 @@ ADD src/api/ $INSTALLDIR/src/api/
 
 COPY --from=base $INSTALLDIR/src/api/Gemfile $INSTALLDIR/src/api/Gemfile.lock $INSTALLDIR/src/api/
 
+RUN rm -rf vendor/cache
+
 ARG BUNDLE_BUILD__SASSC=--disable-march-tune-native
 ARG NOKOGIRI_USE_SYSTEM_LIBRARIES=1
 
 RUN gem install --no-format-executable brakeman --version 5.0.2 --no-doc
 RUN gem install sassc --version 2.0.1 --no-doc
+
+RUN bundle config build.ffi --enable-system-libffi; \
+    bundle config build.nokogiri --use-system-libraries; \
+    bundle config build.nio4r --with-cflags='-Wno-return-type'
 
 RUN bundle config --local without development:test
 
