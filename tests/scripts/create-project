@@ -1,30 +1,75 @@
-#!/bin/sh
+#!/usr/bin/python3
 
-src_prj_name=$1
-dst_prj_name=$2
-prj_repo=${3:-main}
-prj_arch=${4:-x86_64}
+import argparse
+import sys
 
-get_prjmeta() {
-	cat << EOF
-<project name="$dst_prj_name">
-  <repository name="$prj_repo">
-    <path project="Debian:$src_prj_name:main" repository="$prj_repo"/>
-    <arch>$prj_arch</arch>
-  </repository>
-</project>
-EOF
-}
+import osc.conf
 
-get_prjconf() {
-	cat << EOF
+from urllib.parse import quote_plus
+from osc.core import edit_meta
+from osc.conf import get_config
+
+
+prjconf = """
 Repotype: debian
 type: dsc
 release: b<B_CNT>
 buildengine: debootstrap
-EOF
-}
+""".strip()
 
-echo "Creating OBS Project: $dst_prj_name"
-get_prjmeta | osc meta prj "$dst_prj_name" -F -
-get_prjconf | osc meta prjconf "$dst_prj_name" -F -
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--arch', dest='arch', default='x86_64', type=str, help='architecture')
+    parser.add_argument('--description', dest='description', default='', type=str, help='description')
+    parser.add_argument('--maintainer', dest='maintainers', default=[], action='append', type=str, help='add maintainer')
+    parser.add_argument('--allowbuilddep', dest='allowbuilddeps', default=[], action='append', type=str, help='add allowbuilddep')
+    parser.add_argument('--access', action=argparse.BooleanOptionalAction, default=None, help='enable or disable access')
+    parser.add_argument('--publish', action=argparse.BooleanOptionalAction, default=None, help='enable or disable publish')
+    parser.add_argument('source', metavar='SRC_PRJ:SECTION/REPO', type=str, help='source project/repo')
+    parser.add_argument('destination', metavar='DST_PRJ:SECTION/REPO', type=str, help='destination project/repo')
+    args = parser.parse_args()
+    source_prj, source_repo = args.source.split('/')
+    destination_prj, destination_repo = args.destination.split('/')
+    arch = args.arch
+
+    print(f"Creating OBS Project: {destination_prj}")
+    description = f'<description>{args.description}</description>'
+    maintainers = '\n'.join(
+        f'<person userid="{maintainer}" role="maintainer"/>' for maintainer in args.maintainers
+    )
+    accesses = "" if args.access is None else (
+        f"<access>{'<enable/>' if args.access else '<disable/>'}</access>"
+    )
+    publishes = "" if args.publish is None else (
+        f"<publish>{'<enable/>' if args.publish else '<disable/>'}</publish>"
+    )
+    allowbuilddeps = '\n'.join(
+        f'<allowbuilddep name="{allowbuilddep}"/>' for allowbuilddep in args.allowbuilddeps
+    )
+    meta = f"""
+    <project name="{destination_prj}">
+      {description}
+      {maintainers}
+      {publishes}
+      {accesses}
+      {allowbuilddeps}
+      <repository name="{destination_repo}">
+        <path project="{source_prj}" repository="{source_repo}"/>
+        <arch>{arch}</arch>
+      </repository>
+    </project>
+    """
+
+    get_config()
+    # osc.conf.config['http_debug'] = True
+    print(meta)
+
+    edit_meta(metatype='prj',
+          data=meta,
+          apiurl=osc.conf.config['apiurl'],
+          path_args=quote_plus(destination_prj))
+
+
+if __name__ == '__main__':
+    main()

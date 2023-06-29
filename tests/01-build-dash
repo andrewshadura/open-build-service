@@ -2,7 +2,7 @@
 
 create-debian-project bullseye
 
-create-project bullseye bullseye-derivative
+create-project Debian:bullseye:main/main bullseye-derivative/main
 
 dir="$(mktemp -d)"
 
