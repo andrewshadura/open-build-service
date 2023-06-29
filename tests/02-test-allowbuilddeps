@@ -1,0 +1,47 @@
+#!/bin/sh -ex
+
+dir="$(mktemp -d)"
+
+cd "$dir"
+
+create-user owneruser opensuse
+create-user otheruser opensuse
+
+sed 's/user = .*/user = owneruser/' ~/.oscrc > "$dir/oscrc-owner"
+sed 's/user = .*/user = otheruser/' ~/.oscrc > "$dir/oscrc-other"
+
+osc api /person
+
+create-project --maintainer owneruser --no-access --allowbuilddep test:app-project-allow-build-dep Debian:bullseye:main/main test:base-project-hidden/main
+
+create-project --maintainer otheruser --access test:base-project-hidden/main test:app-project-allow-build-dep/main
+
+: Other user should be able to access the dependent project
+osc -c "$dir/oscrc-other" meta prj test:app-project-allow-build-dep
+
+: The hidden project should not be accessible
+! osc -c "$dir/oscrc-other" meta prj test:base-project-hidden
+
+: Now create an empty package in the hidden project
+cat > hidden-pkg.equivs <<EOF
+Package: hidden-pkg
+Depends: bash
+EOF
+
+equivs-build --source hidden-pkg.equivs
+
+osc -c "$dir/oscrc-owner" dput test:base-project-hidden hidden-pkg_*.dsc
+
+wait-for-pkg test:base-project-hidden hidden-pkg main x86_64
+
+: Now create an empty dependent package in the public project
+cat > public-pkg.equivs <<EOF
+Package: public-pkg
+Build-Depends: debhelper-compat (= 12), hidden-pkg
+EOF
+
+equivs-build --source public-pkg.equivs
+
+osc -c "$dir/oscrc-other" dput test:app-project-allow-build-dep public-pkg_*.dsc
+
+wait-for-pkg test:app-project-allow-build-dep public-pkg main x86_64

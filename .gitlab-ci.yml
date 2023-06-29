@@ -138,6 +138,7 @@ worker:
         docker-compose
         docker.io
         dpkg-dev
+        equivs
         osc
         osc-plugin-dput
         wait-for-it
