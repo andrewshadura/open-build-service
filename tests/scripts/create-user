@@ -1,0 +1,26 @@
+#!/bin/sh
+
+username="$1"
+password="$2"
+
+if [ -z "$username" ] || [ -z "$password" ]
+then
+	echo Both username and password must be specified. >&2
+	exit 1
+fi
+
+prepare_userdata() {
+	cat << EOF
+<unregisteredperson>
+	<login>$username</login>
+	<realname>Sample User $username</realname>
+	<email>$username@obs.example</email>
+	<password>$password</password>
+	<note></note>
+	<state>confirmed</state>
+</unregisteredperson>
+EOF
+}
+
+echo "Registering OBS user: $username"
+osc -H api -X POST /person/register -d "$(prepare_userdata)"
