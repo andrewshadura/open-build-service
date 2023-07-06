@@ -102,6 +102,8 @@ worker:
           image: $CI_REGISTRY_IMAGE/frontend:$TAG_SHA
           ports:
             - "80:3000"
+          environment:
+            OBS_LOG_LEVEL: debug
         backend:
           image: $CI_REGISTRY_IMAGE/backend:$TAG_SHA
           ports:
