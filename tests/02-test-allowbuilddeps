@@ -45,3 +45,11 @@ equivs-build --source public-pkg.equivs
 osc -c "$dir/oscrc-other" dput test:app-project-allow-build-dep public-pkg_*.dsc
 
 wait-for-pkg test:app-project-allow-build-dep public-pkg main x86_64
+
+: Create a derivative project of the public project
+create-project --maintainer otheruser --access test:app-project-allow-build-dep/main test:app-project-allow-build-dep-deriv/main
+
+osc copypac test:app-project-allow-build-dep public-pkg test:app-project-allow-build-dep-deriv
+
+: And verify that allowbuilddep does not apply transitively
+wait-for-pkg-state test:app-project-allow-build-dep-deriv public-pkg main x86_64 15 broken
