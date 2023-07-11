@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh -e
 
 username="$1"
 password="$2"
@@ -21,6 +21,14 @@ prepare_userdata() {
 </unregisteredperson>
 EOF
 }
+
+echo "Checking if OBS user $username exists"
+if osc api "/person/$username" > /dev/null
+then
+	echo "User already exists, updating the password"
+	osc -H api -X POST -d "$password" "/person/$username?cmd=change_password"
+	exit 0
+fi
 
 echo "Registering OBS user: $username"
 osc -H api -X POST /person/register -d "$(prepare_userdata)"
