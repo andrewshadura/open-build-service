@@ -1,0 +1,29 @@
+#!/bin/sh
+
+project=$1
+pkg=$2
+prj_repo=${3:-main}
+prj_arch=${4:-x86_64}
+iterations=${5:-30}
+state=${6:-succeeded}
+wait=30
+
+echo "Checking build result: $project $pkg $prj_repo $prj_arch"
+
+for i in $(seq $iterations)
+do
+	result=$(osc results "$project" "$pkg" -r "$prj_repo" -a "$prj_arch" 2>/dev/null)
+	echo "$result"
+	if [ "$(echo $result | cut -d' ' -f 3)" = "$state" ]
+	then
+		echo "Package state changed to: $state."
+		exit 0
+	fi
+	if [ $i -eq $iterations ]
+	then
+		echo "ERROR: timed out!" >&2
+		exit 1
+	fi
+	echo "Sleeping ${wait}s (iteration $i/$iterations)"
+	sleep $wait
+done
