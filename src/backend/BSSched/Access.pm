@@ -49,7 +49,7 @@ sub checkbuilddepok {
   my $allow = $adata->{allowbuilddep} || [];
 
   foreach my $a (grep { ref($_) eq 'HASH' } @$allow) {
-    if ($a->{name} eq $projid) {
+    if (($a->{name} eq $projid) || ($a->{name} eq '*')) {
       return 1;
     }
   }

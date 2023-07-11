@@ -577,7 +577,7 @@ class Project < ApplicationRecord
 
   def builddep_allowed?(project_name)
     allowbuilddeps.any? do |abd|
-      abd.name == project_name
+      abd.name == project_name || abd.name == '*'
     end
   end
 
