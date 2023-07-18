@@ -4,7 +4,7 @@ ARG GOPATH=/usr/local/go
 
 FROM rust:1.70-bullseye as aptly-tools-builder
 RUN git clone https://github.com/collabora/aptly-rest-tools \
-              -b v0.0.2 --depth=1 \
+              -b v0.0.3 --depth=1 \
               /tmp/aptly-rest-tools
 WORKDIR /tmp/aptly-rest-tools
 RUN cargo build --release

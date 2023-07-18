@@ -173,7 +173,7 @@ sub aptly_publish_repo {
   my $gpgkey = $distro_config->{'gpg-key'} || $BSConfig::aptly_defconfig->{'gpg-key'};
 
   my @args = ('publish', 'create', 'repo',
-    "--architectures=".join(',', map { Build::Deb::basearch($_) } (('source'), keys %archs)),
+    (map { "--architecture=".Build::Deb::basearch($_) } (('source'), keys %archs)),
     "--distribution=$distribution",
     '--skip-contents',
     '--skip-bz2',
@@ -275,7 +275,7 @@ sub aptly_publish_snapshot {
 
   my $gpgkey = $distro_config->{'gpg-key'} || $BSConfig::aptly_defconfig->{'gpg-key'};
   my @args = ('publish', 'create', 'snapshot',
-    "--architectures=".join(',', map { Build::Deb::basearch($_) } (('source'), keys %archs)),
+    (map { "--architecture=".Build::Deb::basearch($_) } (('source'), keys %archs)),
     "--distribution=$distribution/snapshots/$timestamp",
     '--skip-contents',
     '--skip-bz2',
