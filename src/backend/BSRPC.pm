@@ -34,7 +34,7 @@ use strict;
 
 our $useragent = 'BSRPC 0.9.1';
 our $noproxy;
-our $logtimeout;
+our $logtimeout = 1;
 
 my %hostlookupcache;
 my %cookiestore;	# our session store to keep iChain fast
@@ -225,7 +225,8 @@ sub rpc {
     my $ans;
     local $SIG{'ALRM'} = sub {
       alarm(0);
-      print "rpc timeout($timeout sec), uri: '$param->{uri}'\n" if $logtimeout;
+      my $act = $param->{'request'} || 'GET';
+      print "rpc timeout($timeout sec), uri: $act '$param->{uri}'\n" if $logtimeout;
       die("rpc timeout\n");
     };
     eval {

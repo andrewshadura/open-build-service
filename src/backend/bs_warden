@@ -138,9 +138,14 @@ while (1) {
     } else {
       $js = readxml("$jobsdir/$arch/$job:status", $BSXML::jobstatus, 1);
     }
+    if ($js) {
+      BSUtil::printlog("job status job:$job arch:$arch workerid:$js->{'workerid'} code:$js->{'code'}");
+    } else {
+      BSUtil::printlog("job status job:$job arch:$arch no status");
+    }
     next unless $js && $js->{'code'} eq 'building';
     next unless $js->{'workerid'} eq $worker->{'workerid'};
-    #print "checking worker $wname\n";
+    BSUtil::printlog("checking worker $wname");
     my $param = {
       'uri' => "$js->{'uri'}/worker",
       'timeout' => 60,

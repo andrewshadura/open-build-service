@@ -961,7 +961,7 @@ while (1) {
       push @{$idlearch{$_}}, $idle;
     }
   }
-  #BSUtil::printlog("finding jobs");
+  BSUtil::printlog("finding jobs");
   my %jobs;
   my %maybesrcchange;
   my @archs = sort keys %idlearch;
