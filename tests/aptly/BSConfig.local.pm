@@ -43,9 +43,9 @@ our $aptly_config = {};
 
 foreach $release (@aptly_releases) {
   foreach $component (@apertis_components) {
-    $aptly_config->{$apertis_prefix}{$release}{"aptly_server"} = $aptly_server;
-    $aptly_config->{$apertis_prefix}{$release."-updates"}{"aptly_server"} = $aptly_server;
-    $aptly_config->{$apertis_prefix}{$release."-security"}{"aptly_server"} = $aptly_server;
+    $aptly_config->{$apertis_prefix}{$release}{"aptly-server"} = $aptly_server;
+    $aptly_config->{$apertis_prefix}{$release."-updates"}{"aptly-server"} = $aptly_server;
+    $aptly_config->{$apertis_prefix}{$release."-security"}{"aptly-server"} = $aptly_server;
 
     $aptly_config->{$apertis_prefix}{$release}{"components"}{$component} = {
       "project" => "apertis:".$release.":".$component,

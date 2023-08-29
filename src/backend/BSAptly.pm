@@ -24,7 +24,7 @@ BEGIN {
     my $distros = $BSConfig::aptly_config->{$prefix};
     foreach my $distro (keys %{ $distros }) {
       my $distro_config = $distros->{$distro};
-      die "$prefix -> $distro does not have aptly_server defined" if !defined $distro_config->{'aptly_server'};
+      die "$prefix -> $distro does not have aptly-server defined" if !defined $distro_config->{'aptly-server'};
 
       my $distro_components = $distro_config->{'components'};
       foreach my $component (keys %{ $distro_components }) {
@@ -179,7 +179,7 @@ sub aptly_publish_repo {
     '--skip-bz2',
     $prefix, @to_publish);
   push @args, "--gpg-key=$gpgkey" if $gpgkey;
-  return aptlyctl_exec($distro_config->{'aptly_server'}, @args);
+  return aptlyctl_exec($distro_config->{'aptly-server'}, @args);
 }
 
 # Aptly publish command wrappers
@@ -188,7 +188,7 @@ sub aptly_publish_drop_check {
   my ($prefix, $distribution) = @_;
   my $distro_config = aptly_distro_get_config($prefix, $distribution);
   my @args = ('publish', 'drop', '--ignore-if-missing', $prefix, $distribution);
-  return aptlyctl_exec($distro_config->{'aptly_server'}, @args);
+  return aptlyctl_exec($distro_config->{'aptly-server'}, @args);
 }
 
 sub aptly_publish_update {
@@ -201,7 +201,7 @@ sub aptly_publish_update {
     '--skip-bz2',
     $prefix, $distribution);
   push @args, "--gpg-key=$gpgkey" if $gpgkey;
-  return aptlyctl_exec($distro_config->{'aptly_server'}, @args);
+  return aptlyctl_exec($distro_config->{'aptly-server'}, @args);
 }
 
 # Aptly snapshot command wrappers
@@ -212,7 +212,7 @@ sub aptly_snapshot_create {
   my @args = ('repo', 'snapshot',
     "$projid/$repoid",
     "$projid/$repoid/$timestamp");
-  return aptlyctl_exec($repo_config->{'aptly_server'}, @args);
+  return aptlyctl_exec($repo_config->{'aptly-server'}, @args);
 }
 
 sub aptly_snapshot_exists {
@@ -220,7 +220,7 @@ sub aptly_snapshot_exists {
   my ($projid, $repoid, $timestamp) = @_;
   my $repo_config = aptly_repo_get_config($projid, $repoid);
   my @args = ('snapshot', 'test-exists', "$projid/$repoid/$timestamp");
-  return aptlyctl_exec($repo_config->{'aptly_server'}, @args) == 0;
+  return aptlyctl_exec($repo_config->{'aptly-server'}, @args) == 0;
 }
 
 sub aptly_distro_snapshot {
@@ -282,7 +282,7 @@ sub aptly_publish_snapshot {
     $prefix, @to_publish);
   push @args, "--gpg-key=$gpgkey" if $gpgkey;
 
-  return aptlyctl_exec($distro_config->{'aptly_server'}, @args);
+  return aptlyctl_exec($distro_config->{'aptly-server'}, @args);
 }
 
 # Aptly repo command wrappers
@@ -294,7 +294,7 @@ sub aptly_repo_create {
     "--distribution=$distribution",
     "--component=$component",
     "$projid/$repoid");
-  return aptlyctl_exec($repo_config->{'aptly_server'}, @args);
+  return aptlyctl_exec($repo_config->{'aptly-server'}, @args);
 }
 
 sub aptly_repo_drop {
@@ -304,7 +304,7 @@ sub aptly_repo_drop {
   my $repo_config = aptly_repo_get_config($projid, $repoid);
   my @args = ('repo', 'drop', '--force',
     "$projid/$repoid");
-  return aptlyctl_exec($repo_config->{'aptly_server'}, @args);
+  return aptlyctl_exec($repo_config->{'aptly-server'}, @args);
 }
 
 # Hook functions for OBS
@@ -351,7 +351,7 @@ sub aptly_delproject {
 sub aptly_update_repo {
   my ($projid, $repoid, $config, $extrep) = @_;
   my $repo_config = aptly_repo_get_config($projid, $repoid);
-  return obs2aptly_exec($repo_config->{'aptly_server'}, "$projid/$repoid", $extrep)
+  return obs2aptly_exec($repo_config->{'aptly-server'}, "$projid/$repoid", $extrep)
     || aptly_publish_update($config->{'prefix'}, $config->{'distribution'});
 }
 
