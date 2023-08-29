@@ -22,8 +22,6 @@ check-vendored:
 
 .build-docker-image:
   stage: docker
-  tags:
-    - lightweight
   image:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
