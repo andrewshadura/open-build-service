@@ -57,9 +57,12 @@ COPY docker/apt/*.list /etc/apt/sources.list.d/
 COPY docker/apt/*.gpg /usr/share/keyrings/
 
 # reprepro #697630
+# libsolv1: zstd support
 RUN apt-get update \
  && apt-get install -y \
         apt-utils \
+        libsolv1 \
+        libsolvext1 \
         reprepro
 
 COPY . $WORKDIR
