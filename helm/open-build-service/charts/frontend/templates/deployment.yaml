@@ -15,6 +15,8 @@ spec:
     metadata:
       {{- with .Values.podAnnotations }}
       annotations:
+        checksum/email-secret: {{ include (print $.Template.BasePath "/email-secret.yaml") . | sha256sum }}
+        checksum/sso-secret: {{ include (print $.Template.BasePath "/sso-secret.yaml") . | sha256sum }}
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
