@@ -18,7 +18,7 @@ use strict;
 our %aptly_config_projects;
 
 BEGIN {
-  # From the aptly configuration, generate hash mapping project and repositories
+  # From the obsolete aptly configuration, generate hash mapping project and repositories
   # to the distribution where they live.
   foreach my $prefix (keys %{ $BSConfig::aptly_config }) {
     my $distros = $BSConfig::aptly_config->{$prefix};
@@ -34,6 +34,43 @@ BEGIN {
         $distro_config->{'distribution'} = $distro;
         $component_config->{'component'} = $component;
       }
+    }
+  }
+
+  my $repo_components = {};
+
+  foreach my $projid (keys %{$BSConfig::aptly_projects}) {
+    my $repos = $BSConfig::aptly_projects->{$projid};
+    foreach my $repoid (keys %{$repos}) {
+      my $repo_config = $repos->{$repoid};
+      if (defined $repo_config->{'target'}) {
+        my $target_config = $BSConfig::aptly_targets->{$repo_config->{'target'}};
+        die "$projid/$repoid refers to an undefined target repository $repo_config->{'target'}" if !defined $target_config;
+
+        $repo_config->{'aptly-server'} ||= $target_config->{'server'};
+        $repo_config->{'gpg-key'}      ||= $target_config->{'gpg-key'};
+        $repo_config->{'prefix'}       ||= $target_config->{'prefix'};
+      }
+
+      die "$projid/$repoid does not have either aptly-server or target defined" if !defined $repo_config->{'aptly-server'};
+      die "$projid/$repoid does not have prefix defined" if !defined $repo_config->{'prefix'};
+      die "$projid/$repoid does not have distribution defined" if !defined $repo_config->{'distribution'};
+
+      # OBS gives us a single OBS project/repoid, but we need to publish all projects in the same prefix at once
+      # For this reason, we need to share the components set, which means that we (confusingly) have aptly
+      # repo-specific configs that contain information about their sibling repos.
+      my $all_components_in_prefix = ($repo_components
+          ->{$repo_config->{'aptly-server'}}
+          ->{$repo_config->{'prefix'}}
+          ->{$repo_config->{'distribution'}}
+          ->{'components'} ||= {});
+      $all_components_in_prefix->{$repo_config->{'component'}} = {
+        'project'    => $projid,
+        'repository' => $repoid,
+        'component'  => $repo_config->{'component'},
+      };
+      $repo_config->{'components'} = $all_components_in_prefix;
+      $aptly_config_projects{$projid}{$repoid} = $repo_config;
     }
   }
 }
