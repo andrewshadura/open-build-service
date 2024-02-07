@@ -14,12 +14,16 @@ use Build::Deb;
 use POSIX qw(strftime);
 
 use strict;
+use feature 'say';
 
 our %aptly_config_projects;
 
 BEGIN {
   # From the obsolete aptly configuration, generate hash mapping project and repositories
   # to the distribution where they live.
+  say STDERR 'WARNING: Deprecated configuration option \$aptly_config used, please use $aptly_projects instead!'
+    if defined $BSConfig::aptly_config;
+
   foreach my $prefix (keys %{ $BSConfig::aptly_config }) {
     my $distros = $BSConfig::aptly_config->{$prefix};
     foreach my $distro (keys %{ $distros }) {
