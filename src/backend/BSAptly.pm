@@ -14,6 +14,9 @@ use Build::Deb;
 use POSIX qw(strftime);
 
 use strict;
+# TODO: drop "no warnings" when upgraded to Perl 5.36
+no warnings 'experimental::signatures';
+use feature 'signatures';
 use feature 'say';
 
 our %aptly_config_projects;
@@ -111,23 +114,19 @@ sub obs2aptly_exec {
 
 # Aptly configuration helpers
 
-sub aptly_distro_get_config {
-  my ($prefix, $distro) = @_;
+sub aptly_distro_get_config($prefix, $distro) {
   return $BSConfig::aptly_config->{$prefix}{$distro};
 }
 
-sub aptly_project_get_config {
-  my ($projid) = @_;
+sub aptly_project_get_config($projid) {
   return $aptly_config_projects{$projid};
 }
 
-sub aptly_repo_get_config {
-  my ($projid, $repoid) = @_;
+sub aptly_repo_get_config($projid, $repoid) {
   return $aptly_config_projects{$projid}{$repoid};
 }
 
-sub aptly_repo_get_component {
-  my ($projid, $repoid) = @_;
+sub aptly_repo_get_component($projid, $repoid) {
   my $repo_config = aptly_repo_get_config($projid, $repoid);
   my $distro_components = $repo_config->{'components'};
   foreach my $component (keys %$distro_components) {
@@ -141,13 +140,11 @@ sub aptly_repo_get_component {
 
 # OBS objects helpers
 
-sub obs_get_project {
-  my ($projid) = @_;
+sub obs_get_project($projid) {
   return BSRevision::readproj_local($projid, 1);
 }
 
-sub obs_get_repo {
-  my ($projid, $repoid) = @_;
+sub obs_get_repo($projid, $repoid) {
   my $obs_proj = obs_get_project($projid);
   if (!$obs_proj || !$obs_proj->{'repository'}) {
     return undef;
@@ -160,10 +157,9 @@ sub obs_get_repo {
   return undef;
 }
 
-sub obs_project_repos {
+sub obs_project_repos($proj) {
   # From an OBS project, get all its repositories names in a hash. Only those
   # repositories configured in aptly are included.
-  my ($proj) = @_;
   my %ret;
   if ($proj && $proj->{'repository'}) {
     foreach my $repo (@{ $proj->{'repository'} }) {
@@ -175,7 +171,7 @@ sub obs_project_repos {
   return \%ret;
 }
 
-sub aptly_publish_repo {
+sub aptly_publish_repo($prefix, $distribution) {
   # Given a prefix and distribution, publish a set of multi-component
   # repositories. A repository is included only if:
   # * it's defined in the aptly config for this prefix/distribution.
@@ -183,7 +179,6 @@ sub aptly_publish_repo {
   # Note that, as this included multiple OBS repositories, the archs defined
   # for each one might differ. So the union of all the enabled archs is used
   # when publishing.
-  my ($prefix, $distribution) = @_;
   my %archs;
   my @to_publish;
 
@@ -225,15 +220,13 @@ sub aptly_publish_repo {
 
 # Aptly publish command wrappers
 
-sub aptly_publish_drop_check {
-  my ($prefix, $distribution) = @_;
+sub aptly_publish_drop_check($prefix, $distribution) {
   my $distro_config = aptly_distro_get_config($prefix, $distribution);
   my @args = ('publish', 'drop', '--ignore-if-missing', $prefix, $distribution);
   return aptlyctl_exec($distro_config->{'aptly-server'}, @args);
 }
 
-sub aptly_publish_update {
-  my ($prefix, $distribution) = @_;
+sub aptly_publish_update($prefix, $distribution) {
   # Update an already published repository distribution
   my $distro_config = aptly_distro_get_config($prefix, $distribution);
   my $gpgkey = $distro_config->{'gpg-key'} || $BSConfig::aptly_defconfig->{'gpg-key'};
@@ -247,8 +240,7 @@ sub aptly_publish_update {
 
 # Aptly snapshot command wrappers
 
-sub aptly_snapshot_create {
-  my ($projid, $repoid, $timestamp) = @_;
+sub aptly_snapshot_create($projid, $repoid, $timestamp) {
   my $repo_config = aptly_repo_get_config($projid, $repoid);
   my @args = ('repo', 'snapshot',
     "$projid/$repoid",
@@ -256,17 +248,15 @@ sub aptly_snapshot_create {
   return aptlyctl_exec($repo_config->{'aptly-server'}, @args);
 }
 
-sub aptly_snapshot_exists {
+sub aptly_snapshot_exists($projid, $repoid, $timestamp) {
   # Check if aptly snapshot exists
-  my ($projid, $repoid, $timestamp) = @_;
   my $repo_config = aptly_repo_get_config($projid, $repoid);
   my @args = ('snapshot', 'test-exists', "$projid/$repoid/$timestamp");
   return aptlyctl_exec($repo_config->{'aptly-server'}, @args) == 0;
 }
 
-sub aptly_distro_snapshot {
+sub aptly_distro_snapshot($prefix, $distribution, $timestamp) {
   # Create snapshots for all the repositories in an aptly prefix/distribution.
-  my ($prefix, $distribution, $timestamp) = @_;
   my $distro_config = aptly_distro_get_config($prefix, $distribution);
   my $distro_components = $distro_config->{'components'};
 
@@ -283,9 +273,8 @@ sub aptly_distro_snapshot {
   }
 }
 
-sub aptly_publish_snapshot {
+sub aptly_publish_snapshot($prefix, $distribution, $timestamp) {
   # Publish snapshots for the repositories in an aptly prefix/distribution.
-  my ($prefix, $distribution, $timestamp) = @_;
   my %archs;
   my @to_publish;
 
@@ -328,8 +317,7 @@ sub aptly_publish_snapshot {
 
 # Aptly repo command wrappers
 
-sub aptly_repo_create {
-  my ($projid, $repoid, $distribution, $component) = @_;
+sub aptly_repo_create($projid, $repoid, $distribution, $component) {
   my $repo_config = aptly_repo_get_config($projid, $repoid);
   my @args = ('repo', 'create',
     "--distribution=$distribution",
@@ -338,10 +326,9 @@ sub aptly_repo_create {
   return aptlyctl_exec($repo_config->{'aptly-server'}, @args);
 }
 
-sub aptly_repo_drop {
-  # Remove aptly repository. Use -force flag to remove even if there's
+sub aptly_repo_drop($projid, $repoid) {
+  # Remove aptly repository. Use --force flag to remove even if there's
   # a related snapshot based on this repo.
-  my ($projid, $repoid) = @_;
   my $repo_config = aptly_repo_get_config($projid, $repoid);
   my @args = ('repo', 'drop', '--force',
     "$projid/$repoid");
@@ -350,8 +337,7 @@ sub aptly_repo_drop {
 
 # Hook functions for OBS
 
-sub aptly_putproject {
-  my ($proj, $oldproj, $proj_config) = @_;
+sub aptly_putproject($proj, $oldproj, $proj_config) {
 
   my $oldrepos = obs_project_repos($oldproj);
   my $newrepos = obs_project_repos($proj);
@@ -376,9 +362,7 @@ sub aptly_putproject {
   }
 }
 
-sub aptly_delproject {
-  my ($proj, $proj_config) = @_;
-
+sub aptly_delproject($proj, $proj_config) {
   my $repos = obs_project_repos($proj);
 
   foreach my $repoid (keys %{ $repos }) {
@@ -389,8 +373,7 @@ sub aptly_delproject {
   }
 }
 
-sub aptly_update_repo {
-  my ($projid, $repoid, $config, $extrep) = @_;
+sub aptly_update_repo($projid, $repoid, $config, $extrep) {
   my $repo_config = aptly_repo_get_config($projid, $repoid);
   return obs2aptly_exec($repo_config->{'aptly-server'}, "$projid/$repoid", $extrep)
     || aptly_publish_update($config->{'prefix'}, $config->{'distribution'});
