@@ -28,26 +28,21 @@ sub distribution_basename {
 }
 
 sub do_distro_snapshot {
-  my ($prefix, $distribution, $timestamp) = @_;
-  my $distro_config = BSAptly::aptly_distro_get_config($prefix, $distribution);
-  die("can't find aptly configuration for distribution $prefix/$distribution\n") if !$distro_config;
-  BSAptly::aptly_distro_snapshot($prefix, $distribution, $timestamp);
-  BSAptly::aptly_publish_snapshot($prefix, $distribution, $timestamp);
+  my ($projid, $repoid, $timestamp) = @_;
+  my $repo_config = BSAptly::aptly_repo_get_config($projid, $repoid);
+  die("can't find aptly configuration for distribution $projid/$repoid\n") if !$repo_config;
+  BSAptly::aptly_distro_snapshot($projid, $repoid, $timestamp);
+  BSAptly::aptly_publish_snapshot($projid, $repoid, $timestamp);
 }
 
 getopts('t:');
 
 my ($projid, $repoid) = $ARGV[0] =~ /(.*)\/(.*)/;
-my @suffixes = ('', '-security', '-updates');
 my $timestamp = $opt_t || strftime "%Y%m%dT%H%M%SZ", gmtime;
 
 die("bad project/repo parameter: $projid, $repoid\n") if !$projid || !$repoid;
 
-my $distro_config = BSAptly::aptly_repo_get_config($projid, $repoid);
-die("can't find related aptly distribution for $projid/$repoid\n") if !$distro_config;
-my $prefix = $distro_config->{'prefix'};
-my $distribution = distribution_basename($distro_config->{'distribution'});
+my $repo_config = BSAptly::aptly_repo_get_config($projid, $repoid);
+die("can't find related aptly distribution for $projid/$repoid\n") if !$repo_config;
 
-foreach my $suffix (@suffixes) {
-  do_distro_snapshot($prefix, $distribution.$suffix, $timestamp);
-}
+do_distro_snapshot($projid, $repoid, $timestamp);

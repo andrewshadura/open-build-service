@@ -114,10 +114,6 @@ sub obs2aptly_exec {
 
 # Aptly configuration helpers
 
-sub aptly_distro_get_config($prefix, $distro) {
-  return $BSConfig::aptly_config->{$prefix}{$distro};
-}
-
 sub aptly_project_get_config($projid) {
   return $aptly_config_projects{$projid};
 }
@@ -171,22 +167,24 @@ sub obs_project_repos($proj) {
   return \%ret;
 }
 
-sub aptly_publish_repo($prefix, $distribution) {
+sub aptly_publish_repo($projid, $repoid) {
   # Given a prefix and distribution, publish a set of multi-component
   # repositories. A repository is included only if:
-  # * it's defined in the aptly config for this prefix/distribution.
+  # * it's defined in the aptly config.
   # * the publish flag is enabled on OBS for the related project/repository.
-  # Note that, as this included multiple OBS repositories, the archs defined
-  # for each one might differ. So the union of all the enabled archs is used
+  # Note that, as this included multiple OBS repositories, the arches defined
+  # for each one might differ. So the union of all the enabled arches is used
   # when publishing.
-  my %archs;
+  my %arches;
   my @to_publish;
 
-  my $distro_config = aptly_distro_get_config($prefix, $distribution);
-  my $distro_components = $distro_config->{'components'};
+  my $repo_config = aptly_repo_get_config($projid, $repoid);
+  my $repo_components = $repo_config->{'components'};
+  my $prefix = $repo_config->{'prefix'};
+  my $distribution = $repo_config->{'distribution'};
 
-  foreach my $component (keys %$distro_components) {
-    my $component_config = $distro_components->{$component};
+  foreach my $component (keys %$repo_components) {
+    my $component_config = $repo_components->{$component};
     my $projid = $component_config->{'project'};
     my $repoid = $component_config->{'repository'};
     my $obs_proj = obs_get_project($projid);
@@ -197,45 +195,50 @@ sub aptly_publish_repo($prefix, $distribution) {
     push @to_publish, "$projid/$repoid//$component";
     foreach my $arch (@{ $obs_repo->{'arch'} }) {
       if (BSUtil::enabled($repoid, $obs_proj->{'publish'}, 1, $arch)) {
-        $archs{$arch} = 1;
+        $arches{$arch} = 1;
       }
     }
   }
 
-  if (!%archs) {
+  if (!%arches) {
     return 0;
   }
 
-  my $gpgkey = $distro_config->{'gpg-key'} || $BSConfig::aptly_defconfig->{'gpg-key'};
+  my $gpgkey = $repo_config->{'gpg-key'} || $BSConfig::aptly_defconfig->{'gpg-key'};
 
   my @args = ('publish', 'create', 'repo',
-    (map { "--architecture=".Build::Deb::basearch($_) } (('source'), keys %archs)),
+    (map {
+        "--architecture=".Build::Deb::basearch($_)
+    } (('source'), keys %arches)),
     "--distribution=$distribution",
     '--skip-contents',
     '--skip-bz2',
     $prefix, @to_publish);
   push @args, "--gpg-key=$gpgkey" if $gpgkey;
-  return aptlyctl_exec($distro_config->{'aptly-server'}, @args);
+  return aptlyctl_exec($repo_config->{'aptly-server'}, @args);
 }
 
 # Aptly publish command wrappers
 
-sub aptly_publish_drop_check($prefix, $distribution) {
-  my $distro_config = aptly_distro_get_config($prefix, $distribution);
-  my @args = ('publish', 'drop', '--ignore-if-missing', $prefix, $distribution);
-  return aptlyctl_exec($distro_config->{'aptly-server'}, @args);
+sub aptly_publish_drop_check($projid, $repoid) {
+  my $repo_config = aptly_repo_get_config($projid, $repoid);
+  my @args = ('publish', 'drop', '--ignore-if-missing',
+    $repo_config->{'prefix'},
+    $repo_config->{'distribution'});
+  return aptlyctl_exec($repo_config->{'aptly-server'}, @args);
 }
 
-sub aptly_publish_update($prefix, $distribution) {
+sub aptly_publish_update($projid, $repoid) {
   # Update an already published repository distribution
-  my $distro_config = aptly_distro_get_config($prefix, $distribution);
-  my $gpgkey = $distro_config->{'gpg-key'} || $BSConfig::aptly_defconfig->{'gpg-key'};
+  my $repo_config = aptly_repo_get_config($projid, $repoid);
+  my $gpgkey = $repo_config->{'gpg-key'} || $BSConfig::aptly_defconfig->{'gpg-key'};
   my @args = ('publish', 'update',
     '--skip-contents',
     '--skip-bz2',
-    $prefix, $distribution);
+    $repo_config->{'prefix'},
+    $repo_config->{'distribution'});
   push @args, "--gpg-key=$gpgkey" if $gpgkey;
-  return aptlyctl_exec($distro_config->{'aptly-server'}, @args);
+  return aptlyctl_exec($repo_config->{'aptly-server'}, @args);
 }
 
 # Aptly snapshot command wrappers
@@ -255,13 +258,16 @@ sub aptly_snapshot_exists($projid, $repoid, $timestamp) {
   return aptlyctl_exec($repo_config->{'aptly-server'}, @args) == 0;
 }
 
-sub aptly_distro_snapshot($prefix, $distribution, $timestamp) {
-  # Create snapshots for all the repositories in an aptly prefix/distribution.
-  my $distro_config = aptly_distro_get_config($prefix, $distribution);
-  my $distro_components = $distro_config->{'components'};
+sub aptly_distro_snapshot($projid, $repoid, $timestamp) {
+  # Create snapshots for all the repositories for the project/repository.
 
-  foreach my $component (keys %$distro_components) {
-    my $component_config = $distro_components->{$component};
+  my $repo_config = aptly_repo_get_config($projid, $repoid);
+  my $repo_components = $repo_config->{'components'};
+  my $prefix = $repo_config->{'prefix'};
+  my $distribution = $repo_config->{'distribution'};
+
+  foreach my $component (keys %$repo_components) {
+    my $component_config = $repo_components->{$component};
     my $projid = $component_config->{'project'};
     my $repoid = $component_config->{'repository'};
     my $obs_proj = obs_get_project($projid);
@@ -273,16 +279,18 @@ sub aptly_distro_snapshot($prefix, $distribution, $timestamp) {
   }
 }
 
-sub aptly_publish_snapshot($prefix, $distribution, $timestamp) {
-  # Publish snapshots for the repositories in an aptly prefix/distribution.
-  my %archs;
+sub aptly_publish_snapshot($projid, $repoid, $timestamp) {
+  # Publish snapshots for the repositories in a corresponding aptly prefix/distribution.
+  my %arches;
   my @to_publish;
 
-  my $distro_config = aptly_distro_get_config($prefix, $distribution);
-  my $distro_components = $distro_config->{'components'};
+  my $repo_config = aptly_repo_get_config($projid, $repoid);
+  my $repo_components = $repo_config->{'components'};
+  my $prefix = $repo_config->{'prefix'};
+  my $distribution = $repo_config->{'distribution'};
 
-  foreach my $component (keys %$distro_components) {
-    my $component_config = $distro_components->{$component};
+  foreach my $component (keys %$repo_components) {
+    my $component_config = $repo_components->{$component};
     my $projid = $component_config->{'project'};
     my $repoid = $component_config->{'repository'};
     my $obs_proj = obs_get_project($projid);
@@ -294,25 +302,27 @@ sub aptly_publish_snapshot($prefix, $distribution, $timestamp) {
     push @to_publish, "$projid/$repoid/$timestamp//$component";
     foreach my $arch (@{ $obs_repo->{'arch'} }) {
       if (BSUtil::enabled($repoid, $obs_proj->{'publish'}, 1, $arch)) {
-        $archs{$arch} = 1;
+        $arches{$arch} = 1;
       }
     }
   }
 
-  if (!%archs) {
+  if (!%arches) {
     return 0;
   }
 
-  my $gpgkey = $distro_config->{'gpg-key'} || $BSConfig::aptly_defconfig->{'gpg-key'};
+  my $gpgkey = $repo_config->{'gpg-key'} || $BSConfig::aptly_defconfig->{'gpg-key'};
   my @args = ('publish', 'create', 'snapshot',
-    (map { "--architecture=".Build::Deb::basearch($_) } (('source'), keys %archs)),
+    (map {
+        "--architecture=".Build::Deb::basearch($_)
+    } (('source'), keys %arches)),
     "--distribution=$distribution/snapshots/$timestamp",
     '--skip-contents',
     '--skip-bz2',
     $prefix, @to_publish);
   push @args, "--gpg-key=$gpgkey" if $gpgkey;
 
-  return aptlyctl_exec($distro_config->{'aptly-server'}, @args);
+  return aptlyctl_exec($repo_config->{'aptly-server'}, @args);
 }
 
 # Aptly repo command wrappers
@@ -345,20 +355,20 @@ sub aptly_putproject($proj, $oldproj, $proj_config) {
   foreach my $repoid (keys %{ $oldrepos }) {
     my $repo_config = $proj_config->{$repoid};
     if (!$newrepos->{$repoid}) {
-      #aptly_publish_drop_check($repo_config->{'prefix'}, $repo_config->{'distribution'});
+      #aptly_publish_drop_check($proj->{'name'}, $repoid);
       aptly_repo_drop($proj->{'name'}, $repoid);
-      aptly_publish_repo($repo_config->{'prefix'}, $repo_config->{'distribution'});
+      aptly_publish_repo($proj->{'name'}, $repoid);
     }
   }
 
   foreach my $repoid (keys %{ $newrepos }) {
     my $repo_config = $proj_config->{$repoid};
-    #aptly_publish_drop_check($repo_config->{'prefix'}, $repo_config->{'distribution'});
+    #aptly_publish_drop_check($proj->{'name'}, $repoid);
     if (!$oldrepos->{$repoid}) {
       my $component = aptly_repo_get_component($proj->{'name'}, $repoid);
       aptly_repo_create($proj->{'name'}, $repoid, $repo_config->{'distribution'}, $component);
     }
-    aptly_publish_repo($repo_config->{'prefix'}, $repo_config->{'distribution'});
+    aptly_publish_repo($proj->{'name'}, $repoid);
   }
 }
 
@@ -367,16 +377,16 @@ sub aptly_delproject($proj, $proj_config) {
 
   foreach my $repoid (keys %{ $repos }) {
     my $repo_config = $proj_config->{$repoid};
-    aptly_publish_drop_check($repo_config->{'prefix'}, $repo_config->{'distribution'});
+    aptly_publish_drop_check($proj->{'name'}, $repoid);
     aptly_repo_drop($proj->{'name'}, $repoid);
-    aptly_publish_repo($repo_config->{'prefix'}, $repo_config->{'distribution'});
+    aptly_publish_repo($proj->{'name'}, $repoid);
   }
 }
 
 sub aptly_update_repo($projid, $repoid, $config, $extrep) {
   my $repo_config = aptly_repo_get_config($projid, $repoid);
   return obs2aptly_exec($repo_config->{'aptly-server'}, "$projid/$repoid", $extrep)
-    || aptly_publish_update($config->{'prefix'}, $config->{'distribution'});
+    || aptly_publish_update($projid, $repoid);
 }
 
 1;
