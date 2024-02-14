@@ -13,10 +13,10 @@ spec:
       {{- include "frontend.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
       annotations:
         checksum/email-secret: {{ include (print $.Template.BasePath "/email-secret.yaml") . | sha256sum }}
         checksum/sso-secret: {{ include (print $.Template.BasePath "/sso-secret.yaml") . | sha256sum }}
+      {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
