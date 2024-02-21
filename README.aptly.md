@@ -22,89 +22,139 @@ configurations defined in order to use the aptly backend.
 
 ### aptly repositories hash
 
-The OBS configuration files must provide a hash named `aptly_config` with the
+The OBS configuration files must provide a hash named `aptly_projects` with the
 following structure:
 
 ```
-our $aptly_config = {
-  "prefix_path" => {
-    "distribution_name" => {
-      "gpg-key" => "optional_gpg_hash",
-      "components" => {
-        "component_name" => {
-          "project" => "obs_project_id",
-          "repository" => "obs_repository_id",
-        },
-        [...]
-      },
+our $aptly_projects = {
+  "obs_project_id" => {
+    "obs_repository_id" => {
+      "target"       => "repository_name",
+      "distribution" => "distribution_name",
+      "component"    => "component_name",
+      "gpg-key"      => "optional_gpg_hash",
     },
     [...]
   },
+  [...]
 };
 ```
 
-NOTE: a pair `(obs_project_id, obs_repository_id)` can only be appear once in
-the hash, i.e. it can't be a component of more than one distribution.
+For each `repository_name`, there must be an entry in a hash `aptly_targets`:
 
-For example, for an Apertis v2022 release:
+```
+our $aptly_targets = {
+  "repository_name" => {
+    "server"  => {
+      "url" => "https://...",
+      "token" => "...",
+    },
+    "gpg-key" => "gpg_hash",
+    "prefix"  => "prefix_path",
+  }
+};
+```
+
+Instead of specifying `target` and a corresponding entry in `aptly_targets`,
+it’s also possible to configure the aptly endpoint directly using
+`aptly-server` hash (see example below).
+
+For example, for an Apertis v2025 release:
 * publish prefix path set to: `shared/apertis/public`.
-* 3 distributions defined: `v2022`, `v2022-security`, `v2022-updates`.
+* 3 distributions defined: `v2025`, `v2025-security`, `v2025-updates`.
 * each distribution has 3 components: `target`, `development`, `sdk`.
 * for each component, the OBS project and repository is defined.
-* as an example, `v2022` will be published using the `gpg-key` defined for this
+* `rebuild` repository for `sdk` is published at a separate aptly instance which
+  is specified inline using `aptly-server` setting.
+* as an example, `v2025` will be published using the `gpg-key` defined for this
 distribution. Otherwise, the default `gpg-key` is used.
 
 ```
-our $aptly_config = {
-  "shared/apertis/public" => {
-    "v2022" => {
-      "gpg-key" => "8E62938108AE643A217D0511027B2E6C53229B30",
-      "components" => {
-        "target" => {
-          "project" => "apertis:v2022:target",
-          "repository" => "default",
-        },
-        "development" => {
-          "project" => "apertis:v2022:development",
-          "repository" => "default",
-        },
-        "sdk" => {
-          "project" => "apertis:v2022:sdk",
-          "repository" => "default",
-        },
+my $apertis_aptly_server = {
+  "url" => "https://...",
+  "token" => "...",
+};
+
+our $aptly_repos = {
+  "apertis" => {
+    "server"  => $apertis_aptly_server
+    "gpg-key" => $aptly_gpgkey,
+    "prefix"  => "shared/apertis/public",
+  }
+};
+
+our $aptly_projects = {
+  "apertis:v2025:target" => {
+    "default" => {
+      "target"       => "apertis",
+      "distribution" => "v2025",
+      "component"    => "target",
+    }
+  },
+  "apertis:v2025:development" => {
+    "default" => {
+      "target"       => "apertis",
+      "distribution" => "v2025",
+      "component"    => "development",
+    }
+  },
+  "apertis:v2025:sdk" => {
+    "default" => {
+      "target"       => "apertis",
+      "distribution" => "v2025",
+      "component"    => "sdk",
+    },
+    "rebuild" => {
+      "distribution" => "v2025",
+      "component"    => "sdk",
+      "gpg-key"      => "...",
+      "prefix"       => "apertis",
+      "aptly-server" => {
+        "url" => "https://rebuilds.apertis.org",
+        "token" => "tokentoken",
       },
     },
-    "v2022-security" => {
-      "components" => {
-        "target" => {
-          "project" => "apertis:v2022:security:target",
-          "repository" => "default",
-        },
-        "development" => {
-          "project" => "apertis:v2022:security:development",
-          "repository" => "default",
-        },
-        "sdk" => {
-          "project" => "apertis:v2022:security:sdk",
-          "repository" => "default",
-        },
-      },
+  },
+  "apertis:v2025:updates:target" => {
+    "default" => {
+      "target"       => "apertis",
+      "distribution" => "v2025-updates",
+      "component"    => "target",
+    }
+  },
+  "apertis:v2025:updates:development" => {
+    "default" => {
+      "target"       => "apertis",
+      "distribution" => "v2025-updates",
+      "component"    => "development",
+    }
+  },
+  "apertis:v2025:updates:sdk" => {
+    "default" => {
+      "target"       => "apertis",
+      "distribution" => "v2025-updates",
+      "component"    => "sdk",
     },
-    "v2022-updates" => {
-      "components" => {
-        "target" => {
-          "project" => "apertis:v2022:updates:target",
-          "repository" => "default",
-        },
-        "development" => {
-          "project" => "apertis:v2022:updates:development",
-          "repository" => "default",
-        },
-        "sdk" => {
-          "project" => "apertis:v2022:updates:sdk",
-          "repository" => "default",
-        },
-      },
+  },
+  "apertis:v2025:security:target" => {
+    "default" => {
+      "target"       => "apertis",
+      "distribution" => "v2025-security",
+      "component"    => "target",
+    }
+  },
+  "apertis:v2025:security:development" => {
+    "default" => {
+      "target"       => "apertis",
+      "distribution" => "v2025-security",
+      "component"    => "development",
+    }
+  },
+  "apertis:v2025:security:sdk" => {
+    "default" => {
+      "target"       => "apertis",
+      "distribution" => "v2025-security",
+      "component"    => "sdk",
     },
   },
 };
