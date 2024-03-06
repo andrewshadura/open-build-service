@@ -39,26 +39,28 @@ foreach $release (@reprepro_releases) {
   };
 };
 
-our $aptly_config = {};
+our $aptly_targets = {
+  'apertis' => {
+    'server' => {
+      'url' => 'http://aptly:8080',
+    },
+    'prefix' => $apertis_prefix,
+  },
+};
+
+our $aptly_projects = {};
 
 foreach $release (@aptly_releases) {
   foreach $component (@apertis_components) {
-    $aptly_config->{$apertis_prefix}{$release}{"aptly-server"} = $aptly_server;
-    $aptly_config->{$apertis_prefix}{$release."-updates"}{"aptly-server"} = $aptly_server;
-    $aptly_config->{$apertis_prefix}{$release."-security"}{"aptly-server"} = $aptly_server;
-
-    $aptly_config->{$apertis_prefix}{$release}{"components"}{$component} = {
-      "project" => "apertis:".$release.":".$component,
-      "repository" => "default",
-    };
-    $aptly_config->{$apertis_prefix}{$release."-updates"}{"components"}{$component} = {
-      "project" => "apertis:".$release.":updates:".$component,
-      "repository" => "default",
-    };
-    $aptly_config->{$apertis_prefix}{$release."-security"}{"components"}{$component} = {
-      "project" => "apertis:".$release.":security:".$component,
-      "repository" => "default",
-    };
+    foreach my $suffix ('', '-updates', '-security') {
+      $aptly_projects->{"apertis:$release$suffix:$component"} = {
+        'default' => {
+          'target' => 'apertis',
+          'distribution' => $release . $suffix,
+          'component' => $component,
+        },
+      };
+    }
   };
 };
 
