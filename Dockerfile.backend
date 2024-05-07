@@ -119,7 +119,7 @@ COPY --from=aptly-tools-builder \
   /tmp/aptly-rest-tools/target/release/obs2aptly \
   /usr/local/bin/
 
-RUN mkdir -p /srv/obs/log /srv/obs/run \
+RUN mkdir -p /srv/obs/dods /srv/obs/log /srv/obs/run \
  && chmod ug=rwxt /srv/obs/run \
  && chown obsrun:obsrun -R /srv/obs
 

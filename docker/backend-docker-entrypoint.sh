@@ -13,7 +13,7 @@ then
     exit 1
 fi
 
-mkdir -p /srv/obs/log /srv/obs/run
+mkdir -p /srv/obs/dods /srv/obs/log /srv/obs/run
 chmod ug=rwxt /srv/obs/run
 chown obsrun:obsrun /srv/obs/*
 
