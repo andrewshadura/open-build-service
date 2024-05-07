@@ -664,7 +664,11 @@ my $sinfo = readxml("$infodir/schedulerinfo.$_myarch", $BSXML::schedulerinfo, 1)
 $sinfo->{'booting'} = undef;
 writexml("$infodir/.schedulerinfo.$_myarch", "$infodir/schedulerinfo.$_myarch", $sinfo, $BSXML::schedulerinfo);
 
+my $cold_start = 0;
+
 if (!$gctx->{'projpacks'} && $startupmode) {
+  $cold_start = 1;
+
   if ($startupmode == 1) {
     print "cold start, scanning all non-remote projects\n";
   } else {
@@ -734,6 +738,7 @@ if (!$gctx->{'projpacks'} && $startupmode) {
 }
 
 if (!$gctx->{'projpacks'}) {
+  $cold_start = 1;
   # get project and package information from src server
   print "cold start, scanning all projects\n";
   BSSched::ProjPacks::get_projpacks($gctx, undef);
@@ -741,6 +746,12 @@ if (!$gctx->{'projpacks'}) {
   # look at everything
   @{$gctx->{'lookat_low'}} = sort keys %{$gctx->{'projpacks'}};
   push @{$gctx->{'lookat_low'}}, @{$gctx->{'prps'}};
+}
+
+if ($cold_start) {
+  # Since this is a cold start, the srcserver may have adjusted the
+  # configuration while we were waiting for it; make sure it's up-to-date.
+  BSConfiguration::update_from_configuration();
 }
 
 # reset booting flag
