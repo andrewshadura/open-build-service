@@ -46,6 +46,14 @@ our $aptly_targets = {
     },
     'prefix' => $apertis_prefix,
   },
+
+  'apertis-test' => {
+    'server' => {
+      'url' => 'http://aptly:8080',
+    },
+    'prefix' => "apertis-test",
+    'gpg-key' => '47E2A08116977D6D',
+  },
 };
 
 our $aptly_projects = {};
@@ -62,6 +70,21 @@ foreach $release (@aptly_releases) {
       };
     }
   };
+};
+
+my @apertis_releases = ("v2024");
+
+foreach $release (@apertis_releases) {
+  foreach $component (@apertis_components) {
+    $aptly_projects->{"apertis:test:$release:$component"} = {
+      'default' => {
+        'target' => 'apertis-test',
+        'distribution' => $release,
+        'component' => $component,
+      },
+    };
+  };
+  $publishedhook->{"apertis:test:".$release.":.*"} = "/usr/lib/obs/server/bs_published_hook_aptly_snapshot";
 };
 
 1;

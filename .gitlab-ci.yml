@@ -115,6 +115,12 @@ unit-tests:
     DOCKER_HOST: tcp://docker:2375
     DOCKER_TLS_CERTDIR: ""
     COMPOSE_OVERLAY: |
+      # Note that the ports are re-defined to make them listen on all interfaces
+      # instead of just 127.0.0.1, which is required for them to be accessible
+      # from the `docker` hostname. (The port numbers were changed in the
+      # process because the `ports` setting *merges* the original values with
+      # the new ones, rather than fully overriding, which means that using the
+      # same port numbers as in the actual compose file will cause conflicts.)
       version: '2.1'
       services:
         frontend:
@@ -133,6 +139,14 @@ unit-tests:
             - backend-logs:/srv/obs/log
         worker:
           image: $CI_REGISTRY_IMAGE/worker:$TAG_SHA
+        aptly:
+          ports:
+            - "88:8080"
+          volumes:
+            - ./tests/aptly/test-key.asc:/aptly/gpg/test-key.asc
+        aptly-content:
+          ports:
+            - "90:80"
       volumes:
         aptly-storage:
           driver_opts:
@@ -167,9 +181,14 @@ unit-tests:
         docker.io
         dpkg-dev
         equivs
+        gnupg2
         osc
         osc-plugin-dput
         libtap-formatter-junit-perl
+        python3-debian
+        python3-pydantic
+        python3-requests
+        python3-ruamel.yaml
         wait-for-it
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
     - docker info
@@ -211,6 +230,19 @@ integration-test:
     - curl http://docker/
     - osc ls /
     - run-parts tests
+
+aptly-integration-test:
+  stage: test
+  extends: .boot-instance
+  script:
+    # The script needs to mount temporary files into a nested container, but
+    # because this is docker-in-docker, the files mounted inside need to be
+    # readable from the *host* docker daemon, running outside of this
+    # container.
+    # https://gitlab.com/gitlab-org/gitlab-foss/-/issues/41227
+    - export TMPDIR=$PWD/tmp
+    - mkdir -p $TMPDIR
+    - python3 tests/aptly/run.py --config tests/aptly/configs/local-ci.yaml
 
 tag-latest-docker-image:
   stage: tag

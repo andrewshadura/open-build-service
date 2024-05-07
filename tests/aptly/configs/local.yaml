@@ -1,0 +1,21 @@
+aptly:
+  api:
+    url: http://localhost:8088/
+  content:
+    url: http://localhost:9000/
+  gpg_key: |
+    -----BEGIN PGP PUBLIC KEY BLOCK-----
+
+    mDMEZi/EFxYJKwYBBAHaRw8BAQdAoi7LGyU9eo73lmJGi8Tb4E/9XXIPpzXXk4iX
+    pMRL1ea0BHRlc3SImQQTFgoAQRYhBCxjBD6eHxYUYFzRkEfioIEWl31tBQJmL8QX
+    AhsDBQkFo5qABQsJCAcCAiICBhUKCQgLAgQWAgMBAh4HAheAAAoJEEfioIEWl31t
+    dw8BAI/s8RoFVuIik3ZwL0ZVJyAuCnUeJ1if9PLW/mRoJGuzAQD+gKFeR3vDYO0m
+    O2MNKxeblV36xrBZcrcXMW70/5/uDrg4BGYvxBcSCisGAQQBl1UBBQEBB0DNW2PG
+    q7d37xU3Nc2rdmqcw2XxQ7BvNn4fxOKuhMlFCQMBCAeIeAQYFgoAIBYhBCxjBD6e
+    HxYUYFzRkEfioIEWl31tBQJmL8QXAhsMAAoJEEfioIEWl31t+/UA/0LmJR7L5CtI
+    X55eEPrpcegR/AOL9HpMt+TeZQSZxYmiAP0fZBHz4RvnB8ryOBcRDyFZ+h6Xco6s
+    gtdC8C3BnzcJDg==
+    =fzGT
+    -----END PGP PUBLIC KEY BLOCK-----
+obs:
+  url: http://localhost:3000/
