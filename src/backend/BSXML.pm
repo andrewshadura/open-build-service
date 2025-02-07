@@ -260,8 +260,9 @@ our $patchinfo = [
             'summary',
             'description',
             'message',  # optional pop-up message
-            'swampid',	# obsolete
+            'swampid',  # obsolete
             'packager',
+            'retracted',
             'stopped',
             'zypp_restart_needed',
             'reboot_needed',

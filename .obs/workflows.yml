@@ -1,16 +1,18 @@
+version: '1.1'
 testbuild:
   steps:
-    - link_package:
+    - branch_package:
         source_project: OBS:Server:2.10:Staging
         source_package: obs-server
         target_project: home:bs-team
+        add_repositories: disable
     - configure_repositories:
         project: home:bs-team
         repositories:
-          - name: 15.3
+          - name: 15.5
             paths:
               - target_project: OBS:Server:2.10:Staging
-                target_repository: 15.3
+                target_repository: 15.5
             architectures:
               - x86_64
   filters:
@@ -23,6 +25,3 @@ rebuild:
         package: obs-server
   filters:
     event: push
-    branches:
-      only:
-        - 2.10
