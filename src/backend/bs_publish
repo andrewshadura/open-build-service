@@ -41,6 +41,8 @@ use MIME::Base64;
 use JSON::XS ();
 use File::Temp qw/tempfile/;
 
+use Capture::Tiny ':all';
+
 use BSConfiguration;
 use BSCando;
 use BSRPC;
@@ -2816,7 +2818,19 @@ publishprog_done:
     my $hook = $BSConfig::unpublishedhook->{$unpublish_prp};
     $hook = [ $hook ] unless ref $hook;
     print "    calling unpublished hook @$hook\n";
-    qsystem(@$hook, $prp, $extrep, @db_deleted) && warn("    @$hook failed: $?\n");
+    my $outerr = capture_merged {
+      system(@$hook, $prp, $extrep, @db_deleted);
+    };
+    my $ret = $? >> 8;
+    if ($ret != 0) {
+      # the caller will take care of printing the output
+      die("@$hook failed ($ret):\n$outerr");
+    } else {
+      # print the output as we still want it to end up in the logs
+      # indent the output before printing
+      $outerr =~ s/^|\n/\n\t/g;
+      print $outerr;
+    }
   }
 
   # support for regex usage in $BSConfig::publishedhook
@@ -2833,7 +2847,19 @@ publishprog_done:
     my $hook = $BSConfig::publishedhook->{$publish_prp};
     $hook = [ $hook ] unless ref $hook;
     print "    calling published hook @$hook\n";
-    qsystem(@$hook, $prp, $extrep, @changed) && die("    @$hook failed: $?\n");
+    my $outerr = capture_merged {
+      system(@$hook, $prp, $extrep, @changed);
+    };
+    my $ret = $? >> 8;
+    if ($ret != 0) {
+      # the caller will take care of printing the output
+      die("@$hook failed ($ret):\n$outerr");
+    } else {
+      # print the output as we still want it to end up in the logs
+      # indent the output before printing
+      $outerr =~ s/^|\n/\n\t/g;
+      print $outerr;
+    }
   }
 
   BSNotify::notify('REPO_PUBLISHED', { project => $projid , 'repo' => $repoid, 'buildid' => $publishid});
