@@ -42,7 +42,6 @@ RUN apt-get update \
         libtimedate-perl \
         libxml-parser-perl \
         libxml-simple-perl \
-        libxml-structured-perl \
         libyaml-libyaml-perl \
         libyaml-tiny-perl \
         make \
