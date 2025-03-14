@@ -2988,10 +2988,11 @@ sub publishevent {
     publish($projid, $repoid);
   };
   if ($@) {
+    my $err = $@;
+    # indent error text when printing it
+    $@ =~ s/^|\n/\n\t/g;
     warn("publish failed for $projid/$repoid : $@");
     # delete state from repoinfo so that we will always re-publish
-    my $err = $@;
-    $err =~ s/\n.*//s;
     clear_repoinfo_state($prp, $err);
     set_publish_retry($req, time() + 60);
     db_sync();
