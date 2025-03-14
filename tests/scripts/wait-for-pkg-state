@@ -12,7 +12,7 @@ echo "Checking build result: $project $pkg $prj_repo $prj_arch"
 
 for i in $(seq $iterations)
 do
-	result=$(osc results "$project" "$pkg" -r "$prj_repo" -a "$prj_arch" 2>/dev/null)
+	result=$(osc results "$project" "$pkg" -r "$prj_repo" -a "$prj_arch" --format '%(repository)s %(arch)s %(code)s' 2>/dev/null)
 	echo "$result"
 	if [ "$(echo $result | cut -d' ' -f 3)" = "$state" ]
 	then

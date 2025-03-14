@@ -193,7 +193,7 @@ wait_pkgs () {
 
 	echo "Checking build result: $project $prj_repo $pkg_name $prj_arch"
 	for i in $(seq $iterations); do
-		result=$($osc results "$project" "$pkg_name" -a "$prj_arch" -r "$prj_repo")
+		result=$($osc results "$project" "$pkg_name" -a "$prj_arch" -r "$prj_repo" --format '%(repository)s %(arch)s %(code)s')
 		if [ "$(echo $result | cut -d' ' -f 3)" == "succeeded" ]; then
 			break
 		fi
