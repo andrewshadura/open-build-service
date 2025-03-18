@@ -9,6 +9,20 @@
     %p
       = render partial: 'shared/download_repository_link',
       locals: { project: @project, repository: @repository, download_url: @configuration['download_url'] }
+    %h4 Publishing Status
+    %p
+      - if @repository.publishing_status['code']
+        Publishing status:
+        %strong
+          = @repository.publishing_status['code']
+      - if @repository.publishing_status['endtime']
+        at #{Time.at(@repository.publishing_status['endtime'].to_i, in: "UTC").to_s}
+    - if @repository.publishing_status['details']
+      %p
+        Error details:
+      %div{ id: "log-space-wrapper" }
+        %pre{ class: "card bg-light text-pre-wrap" }
+          #{@repository.publishing_status['details']}
     %h4 Build Dependency Cycles
     - @repository.architectures.each do |arch|
       - cycles = @repository.cycles(arch.name)

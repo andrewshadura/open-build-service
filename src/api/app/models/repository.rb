@@ -258,6 +258,10 @@ class Repository < ApplicationRecord
     Backend::Api::Published.build_id(project.name, name)
   end
 
+  def publishing_status
+    Backend::Api::Published.status(project.name, name)
+  end
+
   def copy_to(new_project)
     new_repository = deep_clone(include: [:path_elements, :repository_architectures], skip_missing_associations: true)
     # DoD repositories require the architecture references to be stored

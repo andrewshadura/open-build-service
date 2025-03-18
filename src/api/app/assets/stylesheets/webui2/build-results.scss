@@ -59,7 +59,7 @@
   @extend .text-gray-400;
 }
 
-.repository-state-broken {
+.repository-state-broken, .repository-state-publishing_failed {
   @extend .text-danger;
 }
 

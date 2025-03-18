@@ -14,6 +14,7 @@
         %i No build result available
   - else
     - buildresults.each do |repository, build_results|
+      - publishing_status = project.repositories.find_by_name(repository).publishing_status['code']
       - repository_name = repository.tr('.', '_')
       - expanded = collapsed_repositories['project'] ? collapsed_repositories['project'].exclude?(repository_name) : true
       .d-flex.flex-column
@@ -28,9 +29,12 @@
 
         .collapse{ class: "collapse-project-#{repository_name}#{expanded ? ' show' : ''}", data: { repository: repository_name } }
           - build_results.sort_by(&:architecture).each do |build_result|
+            - status = build_result.state
+            - if status == "finished" and publishing_status == "failed"
+              - status = "publishing_failed"
             .row.py-1
               .col-4.col-sm-3.offset-2.offset-sm-4.text-nowrap{ title: "#{repository} summary" }
-                = webui2_repository_status_icon(status: build_result.state, details: build_result.details)
+                = webui2_repository_status_icon(status: status, details: build_result.details)
                 %span.ml-1
                   = link_to(build_result.architecture, { action: :monitor,
                                                   "#{valid_xml_id('repo_' + repository)}": 1,

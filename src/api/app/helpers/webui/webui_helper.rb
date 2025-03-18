@@ -53,6 +53,7 @@ module Webui::WebuiHelper
     'published' => 'lorry',
     'publishing' => 'cog_go',
     'outdated_published' => 'lorry_error',
+    'publishing_failed' => 'lorry_error',
     'outdated_publishing' => 'cog_error',
     'unpublished' => 'lorry_flatbed',
     'outdated_unpublished' => 'lorry_error',
@@ -72,6 +73,7 @@ module Webui::WebuiHelper
     'published' => 'truck',
     'outdated_published' => 'truck',
     'publishing' => 'truck-loading',
+    'publishing_failed' => 'truck-loading',
     'outdated_publishing' => 'truck-loading',
     'unpublished' => 'dolly-flatbed',
     'outdated_unpublished' => 'dolly-flatbed',
@@ -90,6 +92,7 @@ module Webui::WebuiHelper
   REPO_STATUS_DESCRIPTIONS = {
     'published' => 'Repository has been published',
     'publishing' => 'Repository is being created right now',
+    'publishing_failed' => 'Publishing failed, will retry soon',
     'unpublished' => 'Build finished, but repository publishing is disabled',
     'building' => 'Build jobs exists',
     'finished' => 'Build jobs have been processed, new repository is not yet created',

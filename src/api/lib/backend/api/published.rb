@@ -12,6 +12,13 @@ module Backend
         end
       end
 
+      # Returns the publishing status for a repository
+      # @return [?]
+      def self.status(project_name, repository_name)
+        response = http_get(['/published/:project/:repository', project_name, repository_name], params: { view: 'status' })
+        Xmlhash.parse(response)
+      end
+
       # Returns the build id for a repository
       # @return [String]
       def self.build_id(project_name, repository_name)
