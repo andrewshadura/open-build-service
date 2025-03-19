@@ -29,6 +29,7 @@ RUN apt-get update \
         git \
         locales \
         libbssolv-perl \
+        libcapture-tiny-perl \
         libcompress-raw-zlib-perl \
         libdatetime-format-duration-perl \
         libdatetime-format-http-perl \
