@@ -1,5 +1,8 @@
+.git/**
+logs/**
 **/.bundle
 **/vendor/bundle
+src/api/lib/backend/doc/*
 src/api/tmp/*
 src/api/log/*
 src/backend/t/tmp/*
