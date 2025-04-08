@@ -97,7 +97,11 @@ sub api_tool_exec {
     exec(@args) || die("Failed to exec $args[0]: $!\n");
   } else {
     waitpid($pid, 0) == $pid || die("Failed on waitpid $pid: $!\n");
-    return $?;
+    my $child_exit_code = $? >> 8;
+    if ($child_exit_code != 0) {
+      print("@args failed with $child_exit_code\n");
+    }
+    return $child_exit_code == 0;
   }
 }
 
@@ -265,6 +269,7 @@ sub aptly_distro_snapshot($projid, $repoid, $timestamp) {
   my $prefix = $repo_config->{'prefix'};
   my $distribution = $repo_config->{'distribution'};
 
+  my $success = 1;
   foreach my $component (keys %$repo_components) {
     my $component_config = $repo_components->{$component};
     my $projid = $component_config->{'project'};
@@ -274,8 +279,12 @@ sub aptly_distro_snapshot($projid, $repoid, $timestamp) {
 
     next unless $obs_repo;
 
-    aptly_snapshot_create($component_config->{'project'}, $component_config->{'repository'}, $timestamp);
+    aptly_snapshot_create($component_config->{'project'}, $component_config->{'repository'}, $timestamp) || do {
+      $success = 0;
+      print("aptly_snapshot_create $projid $repoid failed\n");
+    };
   }
+  return $success;
 }
 
 sub aptly_publish_snapshot($projid, $repoid, $timestamp) {
