@@ -176,7 +176,9 @@ tag-latest-docker-image:
   stage: tag
   tags:
     - lightweight
-  image: quay.io/skopeo/stable
+  image:
+    name: quay.io/skopeo/stable
+    entrypoint: [""]
   variables:
     AUTH: $CI_REGISTRY_USER:$CI_REGISTRY_PASSWORD
     TAG_NEW: latest
