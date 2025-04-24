@@ -58,19 +58,16 @@ foreach my $p (sort keys %$BSConfig::aptly_projects) {
     $config->{'aptly-server'} == $repo_config->{'aptly-server'} &&
     (grep {$config->{'distribution'} eq $_} @distributions)
   ) {
-      $projects_for_distros->{$config->{'distribution'}} ||= $p;
+      my $obs_repo = BSAptly::obs_get_repo($p, $repoid);
+      if (defined $obs_repo) {
+        $projects_for_distros->{$config->{'distribution'}} ||= $p;
+      }
   }
 };
 
 my $success = 1;
 
 foreach my $p (values %$projects_for_distros) {
-  my $obs_repo = BSAptly::obs_get_repo($p, $repoid);
-  if (!defined $obs_repo) {
-    print("Skipping non-existing $p/$repoid\n");
-    next;
-  };
-
   do_distro_snapshot($p, $repoid, $timestamp) || do {
     $success = 0;
     print("ERROR: Failed to create a snapshot for $p/$repoid\n");
