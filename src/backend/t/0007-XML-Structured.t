@@ -203,8 +203,7 @@ xml=>'
         '<user login="foo">
   <address street="broadway 7" city="new york"/>
   <address street="rural road 12" city="tempe"/>
-  hello
-          world
+  hello&#xA;          world
 </user>'
 };
 
