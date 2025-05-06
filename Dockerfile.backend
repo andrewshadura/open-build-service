@@ -1,18 +1,12 @@
 # Global ARGs shared by all stages
 ARG DEBIAN_FRONTEND=noninteractive
 ARG GOPATH=/usr/local/go
+ARG WORKDIR=/tmp/sources
 
-FROM rust:1.70-bullseye as aptly-tools-builder
-RUN git clone https://github.com/collabora/aptly-rest-tools \
-              -b v0.0.4 --depth=1 \
-              /tmp/aptly-rest-tools
-WORKDIR /tmp/aptly-rest-tools
-RUN cargo build --release
-
-FROM debian:bullseye-slim as server
+FROM debian:bullseye-slim as server-base
 LABEL maintainer Andrej Shadura <andrew.shadura@collabora.co.uk>
 ENV LC_ALL=C.UTF-8
-ARG WORKDIR=/tmp/sources
+ARG WORKDIR
 ARG DEBIAN_FRONTEND
 ARG GOPATH
 
@@ -65,7 +59,40 @@ RUN apt-get update \
         libsolvext1 \
         reprepro
 
+FROM server-base as compile-perl
+
+ARG WORKDIR
+
+COPY src/backend $WORKDIR/src/backend
+
+RUN cp $WORKDIR/src/backend/BSConfig.pm.template $WORKDIR/src/backend/BSConfig.pm
+RUN cd $WORKDIR/src/backend; \
+  for module in BS*.pm; do \
+    perl -c -Ibuild -I. -I/usr/lib/build $module || exit 1; \
+  done
+
+RUN cd $WORKDIR/src/backend; \
+  for module in $(grep -l '#!/usr/bin/perl' bs_*); do \
+    perl -c -Ibuild -I. -I/usr/lib/build $module || exit 1; \
+  done
+
+RUN rm -rf $WORKDIR && mkdir -p $WORKDIR/stamp
+
+FROM rust:1.70-bullseye as aptly-tools-builder
+RUN git clone https://github.com/collabora/aptly-rest-tools \
+              -b v0.0.4 --depth=1 \
+              /tmp/aptly-rest-tools
+WORKDIR /tmp/aptly-rest-tools
+RUN cargo build --release
+
+FROM server-base as server
+ARG WORKDIR
+ARG DEBIAN_FRONTEND
+ARG GOPATH
+
 COPY . $WORKDIR
+# Introduce a dependency on compile-perl to ensure it’s not skipped
+COPY --from=compile-perl $WORKDIR/stamp $WORKDIR
 
 RUN make -C $WORKDIR/dist install
 RUN make -C $WORKDIR/src/backend install
