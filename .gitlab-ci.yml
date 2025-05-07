@@ -74,6 +74,35 @@ worker:
   variables:
     image: worker
 
+unit-tests:
+  stage: test
+  tags:
+    - lightweight
+  needs:
+    - job: backend
+  variables:
+    PERL_TEST_HARNESS_DUMP_TAP: $CI_PROJECT_DIR/tap-output
+  image:
+    name: $CI_REGISTRY_IMAGE/backend:$TAG_SHA
+    entrypoint: [""]
+  script:
+    - apt-get install -qy libtap-formatter-junit-perl
+    - mkdir -p "$PERL_TEST_HARNESS_DUMP_TAP"
+    - cd $CI_PROJECT_DIR/src/backend
+    - make test_unit
+  after_script:
+    - |
+      for d in $PERL_TEST_HARNESS_DUMP_TAP/t/*.t
+      do
+        tap2junit $d
+      done
+  artifacts:
+    paths:
+      - tap-output/*
+    reports:
+      junit: tap-output/**/*.xml
+    when: always
+
 .boot-instance:
   image: debian:bookworm-slim
   tags:
