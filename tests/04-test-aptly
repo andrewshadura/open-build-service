@@ -1,0 +1,122 @@
+#!/bin/sh
+
+. $(dirname $0)/scripts/common.sh
+
+set +x
+
+prj_arch="x86_64"
+prj_components="target development sdk"
+prj_distro="v2300"
+prj_osname="apertis"
+prj_repo="default"
+prj_public_prefix="shared/apertis/public/apertis"
+
+get_prjconf () {
+	prj_distro="$1"
+	cat << EOF
+Repotype: debian
+type: dsc
+release: b$prj_distro.0b<B_CNT>
+buildengine: debootstrap
+EOF
+}
+
+get_empty_prjmeta() {
+	cat << EOF
+<project name="$1">
+  <title>$1 repository</title>
+</project>
+EOF
+}
+
+APTLY_API_URL=http://aptly:8080
+
+aptlyctl() {
+	echo + APTLY_API_URL=$APTLY_API_URL aptlyctl "$@"
+	docker-compose --project-directory "$OBSDIR" exec -T -e APTLY_API_URL=$APTLY_API_URL backend aptlyctl "$@"
+}
+
+wait_for_aptly() {
+	iterations=5
+	wait=5
+
+	echo "Checking aptly: $@"
+
+	for i in $(seq $iterations)
+	do
+		if aptlyctl "$@"
+		then
+			break
+		fi
+		if [ $i -eq $iterations ]
+		then
+			return 1
+		fi
+		echo "Sleeping ${wait}s (iteration $i/$iterations)"
+		sleep $wait
+	done
+}
+
+cleanup() {
+	aptlyctl publish drop --ignore-if-missing $prj_public_prefix $prj_distro
+	for prj_component in $prj_components
+	do
+		project="$prj_osname:$prj_distro:$prj_component"
+		# Newer osc can do osc repo remove
+		get_empty_prjmeta $project | osc meta prj "$project" -F -
+	done
+
+	tap_end
+}
+
+trap cleanup EXIT
+
+for prj_component in $prj_components
+do
+	project="$prj_osname:$prj_distro:$prj_component"
+
+	create-project --publish Debian:$debian_release:main/main "$project/$prj_repo"
+
+	get_prjconf $prj_distro | osc meta prjconf "$project" -F -
+
+	repo="$project/$prj_repo"
+
+	wait_for_aptly repo test-exists "$repo"
+	tap_ok $? "aptly repo for $prj_component exists"
+done
+
+echo "Checking aptly distribution publish: $prj_public_prefix $prj_distro"
+wait_for_aptly publish test-exists $prj_public_prefix $prj_distro
+tap_ok $? "aptly publish exists"
+
+test_component=${prj_components%% *}
+pkg_version=$(date +%+4Y%m%d.%H%M%S)
+
+cat > test-pkg.equivs <<EOF
+Package: test-pkg
+Version: $pkg_version
+Build-Depends: debhelper-compat (= 12)
+EOF
+
+bin_files=test-pkg
+
+equivs-build --source test-pkg.equivs
+
+osc dput $prj_osname:$prj_distro:$test_component test-pkg_*.dsc
+tap_ok $? "upload and create test package"
+
+wait-for-pkg $prj_osname:$prj_distro:$test_component test-pkg $prj_repo x86_64
+tap_ok $? "build test package"
+
+echo Waiting for the package to publish
+sleep 5
+
+for bin_file in $bin_files; do
+	echo "Checking package binary: $bin_file"
+	aptlyctl repo search --exit-code "$prj_osname:$prj_distro:$test_component/$prj_repo" "$bin_file" | grep "$pkg_version"
+	tap_ok $? "binary package $bin_file present in aptly repo"
+done
+
+echo DONE
+
+
