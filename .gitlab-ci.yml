@@ -127,6 +127,10 @@ unit-tests:
           image: $CI_REGISTRY_IMAGE/backend:$TAG_SHA
           ports:
             - "5252:5252"
+          volumes:
+            - ./tests/backend-config:/etc/obs
+            - backend-storage:/srv/obs
+            - backend-logs:/srv/obs/log
         worker:
           image: $CI_REGISTRY_IMAGE/worker:$TAG_SHA
       volumes:
