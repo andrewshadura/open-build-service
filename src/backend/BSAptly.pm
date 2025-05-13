@@ -110,7 +110,8 @@ sub check_exit_code {
   return $child_exit_code == 0;
 }
 
-sub aptlyctl($aptly_server) {
+sub aptlyctl {
+  my $aptly_server = shift;
   return check_exit_code(api_tool_exec($aptly_server, 'aptlyctl', @_));
 }
 
