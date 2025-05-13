@@ -34,12 +34,14 @@ osc dput bullseye-derivative *.dsc
 
 cd "$OLDPWD"
 
-if ! wait-for-pkg bullseye-derivative dash main x86_64 5
+if ! wait-for-pkg-state bullseye-derivative dash main x86_64 5 building
 then
 	# DoD didn't wake up, restart the backend and try again
+	echo "INFO: Packages haven't started building, restarting the backend." >&2
 	docker-compose exec -T backend supervisorctl restart all
-	wait-for-pkg bullseye-derivative dash main x86_64
 fi
+
+wait-for-pkg bullseye-derivative dash main x86_64
 
 wait-for-file -d storage/backend/repos/bullseye-derivative/main
 
