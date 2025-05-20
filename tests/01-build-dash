@@ -1,12 +1,10 @@
 #!/bin/sh -e
 
-create-debian-project bullseye
+. $(dirname $0)/scripts/common.sh
 
-create-project Debian:bullseye:main/main bullseye-derivative/main
+create-debian-project "$debian_release"
 
-dir="$(mktemp -d)"
-
-cd "$dir"
+create-project Debian:$debian_release:main/main $debian_release-derivative/main
 
 apt-get source --download-only dash
 
@@ -30,24 +28,24 @@ echo signature > dash_$ver.orig-vendor.tar.gz.asc
 	dpkg-buildpackage -d -S
 )
 
-osc dput bullseye-derivative *.dsc
+osc dput $debian_release-derivative *.dsc
 
-cd "$OLDPWD"
+cd "$OBSDIR"
 
-if ! wait-for-pkg-state bullseye-derivative dash main x86_64 5 building
+if ! wait-for-pkg-state $debian_release-derivative dash main x86_64 5 building
 then
 	# DoD didn't wake up, restart the backend and try again
 	echo "INFO: Packages haven't started building, restarting the backend." >&2
 	docker-compose exec -T backend supervisorctl restart all
 fi
 
-wait-for-pkg bullseye-derivative dash main x86_64
+wait-for-pkg $debian_release-derivative dash main x86_64
 
-wait-for-file -d storage/backend/repos/bullseye-derivative/main
+wait-for-file -d storage/backend/repos/$debian_release-derivative/main
 
-wait-for-file -f storage/backend/repos/bullseye-derivative/main/$tarball
+wait-for-file -f storage/backend/repos/$debian_release-derivative/main/$tarball
 
-ls storage/backend/repos/bullseye-derivative/main -lR
+ls storage/backend/repos/$debian_release-derivative/main -lR
 
 set -x
 

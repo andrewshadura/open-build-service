@@ -1,10 +1,6 @@
-#!/bin/sh -ex
+#!/bin/sh -e
 
-OBSDIR=$PWD
-
-dir="$(mktemp -d)"
-
-cd "$dir"
+. $(dirname $0)/scripts/common.sh
 
 create-user owneruser opensuse
 create-user otheruser opensuse
@@ -14,7 +10,7 @@ sed 's/user = .*/user = otheruser/' ~/.oscrc > "$dir/oscrc-other"
 
 osc api /person
 
-create-project --maintainer owneruser --no-access --allowbuilddep test:app-project-allow-build-dep Debian:bullseye:main/main test:base-project-hidden/main
+create-project --maintainer owneruser --no-access --allowbuilddep test:app-project-allow-build-dep Debian:$debian_release:main/main test:base-project-hidden/main
 
 create-project --maintainer otheruser --access test:base-project-hidden/main test:app-project-allow-build-dep/main
 
