@@ -1,9 +1,10 @@
-#!/bin/sh -e
+#!/bin/sh
 
 . $(dirname $0)/scripts/common.sh
 
-create-user owneruser opensuse
-create-user otheruser opensuse
+trap tap_end EXIT
+
+create-user owneruser opensuse && create-user otheruser opensuse || tap_fatal "Cannot create OBS users"
 
 sed 's/user = .*/user = owneruser/' ~/.oscrc > "$dir/oscrc-owner"
 sed 's/user = .*/user = otheruser/' ~/.oscrc > "$dir/oscrc-other"
@@ -11,14 +12,18 @@ sed 's/user = .*/user = otheruser/' ~/.oscrc > "$dir/oscrc-other"
 osc api /person
 
 create-project --maintainer owneruser --no-access --allowbuilddep test:app-project-allow-build-dep Debian:$debian_release:main/main test:base-project-hidden/main
+tap_ok $? "create a hidden project with allowbuilddep"
 
 create-project --maintainer otheruser --access test:base-project-hidden/main test:app-project-allow-build-dep/main
+tap_ok $? "create a public project depending on the hidden project"
 
 : Other user should be able to access the dependent project
 osc -c "$dir/oscrc-other" meta prj test:app-project-allow-build-dep
+tap_ok $? "user otheruser can access their public project"
 
 : The hidden project should not be accessible
 ! osc -c "$dir/oscrc-other" meta prj test:base-project-hidden
+tap_ok $? "user otheruser cannot access the hidden project"
 
 : Now create an empty package in the hidden project
 cat > hidden-pkg.equivs <<EOF
@@ -31,6 +36,7 @@ equivs-build --source hidden-pkg.equivs
 osc -c "$dir/oscrc-owner" dput test:base-project-hidden hidden-pkg_*.dsc
 
 wait-for-pkg test:base-project-hidden hidden-pkg main x86_64
+tap_ok $? "hidden package built in the hidden project"
 
 : Now create an empty dependent package in the public project
 cat > public-pkg.equivs <<EOF
@@ -43,6 +49,7 @@ equivs-build --source public-pkg.equivs
 osc -c "$dir/oscrc-other" dput test:app-project-allow-build-dep public-pkg_*.dsc
 
 wait-for-pkg test:app-project-allow-build-dep public-pkg main x86_64
+tap_ok $? "package depending on the hidden package built in the public project"
 
 : Create a derivative project of the public project
 create-project --maintainer otheruser --access test:app-project-allow-build-dep/main test:app-project-allow-build-dep-deriv/main
@@ -51,5 +58,6 @@ osc copypac test:app-project-allow-build-dep public-pkg test:app-project-allow-b
 
 : And verify that allowbuilddep does not apply transitively
 wait-for-pkg-state test:app-project-allow-build-dep-deriv public-pkg main x86_64 15 broken
+tap_ok $? "package transitively depending on the hidden package in the public project is broken"
 
 tail $OBSDIR/logs/backend/scheduler_x86_64.log -n 50 | sed -n '/looking at .*test:app-repo-allow-build-dep-deriv.main/,$p'

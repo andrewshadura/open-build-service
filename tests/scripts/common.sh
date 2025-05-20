@@ -1,3 +1,5 @@
+. $(dirname $0)/scripts/tap.sh
+
 debian_release=bullseye
 
 OBSDIR=$PWD

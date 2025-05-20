@@ -1,16 +1,25 @@
 #!/bin/sh -e
 
+. $(dirname $0)/scripts/common.sh
+
+TAP_TOTAL_TEST_COUNT=2
+trap tap_end EXIT
+
 if [ -f /etc/apt/sources.list ]
 then
-	sed 's/^deb /deb-src /' /etc/apt/sources.list > /etc/apt/sources.list.d/sources.list
+	sed 's/^deb /deb-src /' /etc/apt/sources.list > /etc/apt/sources.list.d/sources.list || tap_fatal
 fi
 
 for f in /etc/apt/sources.list.d/*.sources
 do
 	if [ -e "$f" ]
 	then
-		sed -i 's/Types: deb$/Types: deb deb-src/' "$f"
+		sed -i 's/Types: deb$/Types: deb deb-src/' "$f" || tap_fatal
 	fi
 done
 
+tap_pass "configure deb-src"
+
 apt-get update
+
+tap_pass "update apt lists"
