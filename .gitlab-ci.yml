@@ -164,6 +164,7 @@ unit-tests:
         equivs
         osc
         osc-plugin-dput
+        libtap-formatter-junit-perl
         wait-for-it
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
     - docker info
@@ -183,11 +184,19 @@ unit-tests:
     - PATH=$PWD/tests/scripts:$PATH
   after_script:
     - docker-compose logs > docker-compose.txt
+    - |
+      for d in *-tap.log
+      do
+        tap2junit $d
+      done
   artifacts:
     paths:
       - docker-compose.txt
       - logs/*/*.log
+      - '*-tap.log'
     when: always
+    reports:
+      junit: '*-tap.log.xml'
 
 integration-test:
   stage: test
