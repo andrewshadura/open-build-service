@@ -49,6 +49,7 @@ def main():
     )
     meta = f"""
     <project name="{destination_prj}">
+      <title>{destination_prj} repository</title>
       {description}
       {maintainers}
       {publishes}
