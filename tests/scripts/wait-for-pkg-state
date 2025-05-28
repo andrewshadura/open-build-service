@@ -8,7 +8,7 @@ iterations=${5:-30}
 state=${6:-succeeded}
 wait=30
 
-echo "Checking build result: $project $pkg $prj_repo $prj_arch"
+echo "Checking build result: $project $pkg $prj_repo $prj_arch (expecting $state)"
 
 for i in $(seq $iterations)
 do
