@@ -68,7 +68,7 @@ def main():
     edit_meta(metatype='prj',
           data=meta,
           apiurl=osc.conf.config['apiurl'],
-          path_args=quote_plus(destination_prj))
+          path_args=destination_prj)
 
 
 if __name__ == '__main__':
