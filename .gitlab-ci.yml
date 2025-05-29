@@ -108,7 +108,7 @@ unit-tests:
   tags:
     - heavyweight
   services:
-    - name: docker:stable-dind
+    - name: docker:28-dind
       alias: docker
   variables:
     DOCKER_DRIVER: overlay2
