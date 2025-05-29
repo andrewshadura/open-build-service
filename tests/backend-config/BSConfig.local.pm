@@ -1,5 +1,5 @@
 my @reprepro_releases = ("v2022");
-my @aptly_releases = ("v2023");
+my @aptly_releases = ("v2300");
 my @apertis_components = ("target", "development", "sdk");
 my $apertis_prefix = "shared/apertis/public/apertis";
 my $aptly_server = {
