@@ -134,6 +134,11 @@ unit-tests:
         worker:
           image: $CI_REGISTRY_IMAGE/worker:$TAG_SHA
       volumes:
+        aptly-storage:
+          driver_opts:
+            type: none
+            o: bind
+            device: './storage/aptly'
         backend-storage:
           driver_opts:
             type: none
@@ -169,7 +174,7 @@ unit-tests:
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
     - docker info
     - echo "$COMPOSE_OVERLAY" > docker-compose.override.yml
-    - mkdir -p logs/backend logs/frontend logs/worker storage/backend
+    - mkdir -p logs/backend logs/frontend logs/worker storage/backend storage/aptly
     - |
       cat << EOF > ~/.oscrc
       [general]
