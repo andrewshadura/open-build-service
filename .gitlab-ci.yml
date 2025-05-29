@@ -184,6 +184,7 @@ unit-tests:
       pass = opensuse
       EOF
     - docker-compose up -d
+    - docker-compose ps
     - wait-for-it docker:5252 -s --timeout=180 -- echo "The OBS backend is up"
     - wait-for-it docker:80 -s --timeout=180 -- echo "The OBS frontend is up"
     - PATH=$PWD/tests/scripts:$PATH
