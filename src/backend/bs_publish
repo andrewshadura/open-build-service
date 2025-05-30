@@ -2736,7 +2736,7 @@ sub publish {
   if ($repotype{'debian'}) {
     my $aptly_config = BSAptly::aptly_repo_get_config($projid, $repoid);
     if ($aptly_config) {
-	BSAptly::aptly_update_repo($projid, $repoid, $aptly_config, $extrep);
+	BSAptly::aptly_update_repo($projid, $repoid, $aptly_config, $extrep) or die;
     } elsif ($BSConfig::reprepository && $BSConfig::reprepository->{$prp}) {
 	updaterepo_reprepro($prp, $extrep, @changed);
     } else {
