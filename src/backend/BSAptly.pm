@@ -90,6 +90,7 @@ sub api_tool_exec {
     die "Failed to fork child: $!";
   } elsif ($pid == 0) {
     open(STDERR, '>&STDOUT');
+    $ENV{'NO_COLOR'} = '1';
     $ENV{'APTLY_API_URL'} = $aptly_server->{'url'};
     $ENV{'APTLY_API_TOKEN'} = $aptly_server->{'token'} if defined $aptly_server->{'token'};
     my $timestamp = strftime "%Y-%m-%d %H:%M:%S", gmtime;
