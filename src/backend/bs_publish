@@ -2736,7 +2736,14 @@ sub publish {
   if ($repotype{'debian'}) {
     my $aptly_config = BSAptly::aptly_repo_get_config($projid, $repoid);
     if ($aptly_config) {
-	BSAptly::aptly_update_repo($projid, $repoid, $aptly_config, $extrep) or die;
+        # capture output (stderr+stdout) from aptly tools
+        # while passing it through to the logs
+        my ($outerr, $result) = tee_merged {
+            return scalar BSAptly::aptly_update_repo($projid, $repoid, $aptly_config, $extrep);
+        };
+        if (!$result) {
+            die $outerr;
+        }
     } elsif ($BSConfig::reprepository && $BSConfig::reprepository->{$prp}) {
 	updaterepo_reprepro($prp, $extrep, @changed);
     } else {
@@ -2818,6 +2825,7 @@ publishprog_done:
     my $hook = $BSConfig::unpublishedhook->{$unpublish_prp};
     $hook = [ $hook ] unless ref $hook;
     print "    calling unpublished hook @$hook\n";
+    # capture output (stderr+stdout) from the hook
     my $outerr = capture_merged {
       system(@$hook, $prp, $extrep, @db_deleted);
     };
