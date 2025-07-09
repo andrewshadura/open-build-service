@@ -56,6 +56,7 @@ BEGIN {
         $repo_config->{'aptly-server'} ||= $target_config->{'server'};
         $repo_config->{'gpg-key'}      ||= $target_config->{'gpg-key'};
         $repo_config->{'prefix'}       ||= $target_config->{'prefix'};
+        $repo_config->{'publish-only'} ||= $target_config->{'publish-only'};
       }
 
       die "$projid/$repoid does not have either aptly-server or target defined" if !defined $repo_config->{'aptly-server'};
@@ -118,7 +119,9 @@ sub aptlyctl {
 
 sub obs2aptly($projid, $repoid, $extrep) {
   my $repo_config = aptly_repo_get_config($projid, $repoid);
-  return check_exit_code(api_tool_exec($repo_config->{'aptly-server'}, 'obs2aptly', "$projid/$repoid", $extrep));
+  my @args = ("$projid/$repoid", $extrep);
+  push @args, "--only=$repo_config->{'publish-only'}" if ($repo_config->{'publish-only'});
+  return check_exit_code(api_tool_exec($repo_config->{'aptly-server'}, 'obs2aptly', @args));
 }
 
 # Aptly configuration helpers
