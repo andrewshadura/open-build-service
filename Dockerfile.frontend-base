@@ -9,7 +9,7 @@ ARG DEBIAN_RELEASE
 
 # Enable backports for sphinxsearch
 RUN [ "$DEBIAN_RELEASE" != bullseye ] || \
-    echo "deb http://deb.debian.org/debian bullseye-backports main" > /etc/apt/sources.list.d/backports.list
+    echo "deb http://archive.debian.org/debian bullseye-backports main" > /etc/apt/sources.list.d/backports.list
 
 RUN apt-get update \
  && apt-get install -y \
