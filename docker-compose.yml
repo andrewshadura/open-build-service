@@ -16,7 +16,7 @@ services:
     image: memcached:1.6-alpine
 
   aptly:
-    image: registry.gitlab.collabora.com/obs/aptly-repository/aptly
+    image: registry.gitlab.collabora.com/obs/aptly/test:collabora-staging
     hostname: aptly
     restart: unless-stopped
     volumes:
