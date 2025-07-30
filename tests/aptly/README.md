@@ -32,6 +32,7 @@ apt install \
   python3-pydantic \
   python3-requests \
   python3-ruamel.yaml \
+  python3-tap \
 ```
 
 ## Usage

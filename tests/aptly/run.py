@@ -1,7 +1,8 @@
 from dataclasses import dataclass
+from functools import wraps
 from http import HTTPStatus
 from pathlib import Path
-from typing import ClassVar, Iterator, Literal, Protocol
+from typing import ClassVar, Iterator, Literal, Protocol, Mapping
 from xml.etree import ElementTree as ET
 
 import argparse
@@ -16,6 +17,7 @@ import posixpath
 import stat
 import subprocess
 import sys
+import tap.tracker
 import tempfile
 import textwrap
 import time
@@ -70,6 +72,46 @@ APERTIS_TEST_RELEASE_BASE = f'{APERTIS_DIST}.9999'
 APERTIS_TEST_RELEASE = f'{APERTIS_TEST_RELEASE_BASE}.{int(time.time())}'
 
 APERTIS_REGISTRY = 'registry.gitlab.apertis.org/infrastructure/apertis-docker-images'
+
+tap.tracker.ENABLE_VERSION_13 = False
+
+test_tracker = tap.tracker.Tracker()
+# CI expects the output to be named *-tap.log, but there's no way to override
+test_tracker._get_tap_file_path = lambda x: "aptly-tap.log"
+
+
+def format_arg(arg):
+    return (
+        format_kwargs(arg) if isinstance(arg, Mapping) else
+        format_args(arg) if isinstance(arg, list) else
+        str(arg)
+    )
+
+def format_args(args):
+    return " ".join(
+        format_arg(arg) for arg in args
+    )
+
+def format_kwargs(kwargs):
+    try:
+        return " ".join(
+            f"{format_arg(k)}={format_arg(v)}" for k, v in kwargs.items()
+        )
+    except:
+        raise
+
+def checked_test(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            result = f(*args, **kwargs)
+        except:
+            test_tracker.add_not_ok("aptly", f"{f.__name__} {format_args(args)} {format_kwargs(kwargs)}")
+            raise
+        else:
+            test_tracker.add_ok("aptly", f"{f.__name__} {format_args(args)} {format_kwargs(kwargs)}")
+            return result
+    return wrapper
 
 
 class BilateralUrl(pydantic.BaseModel):
@@ -349,6 +391,10 @@ class RemoteFile:
 
         return response.content
 
+    def __str__(self) -> str:
+        return self.url
+
+
 
 @dataclass
 class MissingPackage(Exception):
@@ -599,6 +645,7 @@ class ObsApi:
 # Note that this is, at best, a guess; OBS is filled with race conditions when it comes
 # to parsing the configuration sent by the frontend doing setup tasks that depend on
 # said configuration.
+@checked_test
 def check_dod_configuration() -> None:
     logging.info('checking server DoD configuration')
 
@@ -611,6 +658,7 @@ def check_dod_configuration() -> None:
         raise ValueError('download_on_demand is not enabled')
 
 
+@checked_test
 def delete_project_if_exists(project: Project) -> None:
     logging.info(f'deleting project: {project}')
     try:
@@ -706,6 +754,7 @@ def create_package(package: TestPackage) -> None:
     ObsApi.instance.edit_package_meta(str(package.project), package.name, meta)
 
 
+@checked_test
 def copy_package_to_project(package: TestPackage, files: list[RemoteFile]) -> None:
     files_by_name = {file.name: file for file in files}
 
@@ -814,6 +863,7 @@ class PackageStatusPoller:
         return self._package
 
 
+@checked_test
 def wait_for_packages(packages: list[TestPackage]) -> None:
     # 5 seconds * 240 tries = 20 minutes.
     DELAY_SECONDS = 5
@@ -853,6 +903,7 @@ def wait_for_packages(packages: list[TestPackage]) -> None:
         )
 
 
+@checked_test
 def clean_rebuild(package_files: dict[TestPackage, list[RemoteFile]]) -> None:
     components = {package.component for package in package_files}
 
@@ -904,6 +955,7 @@ CHECK_PUBLISHED_RETRIES = 5
 CHECK_PUBLISHED_DELAY_SECONDS = 1
 
 
+@checked_test
 def check_published_package_sources(
     package: TestPackage,
     original_files: list[RemoteFile],
@@ -934,6 +986,7 @@ def check_published_package_sources(
         file.download()
 
 
+@checked_test
 def check_published_package_outputs(
     package: TestPackage,
     *,
@@ -1069,6 +1122,7 @@ def install_packages_into_container(
     assert not missing_packages, missing_packages
 
 
+@checked_test
 def check_published_repository(
     package_files: dict[TestPackage, list[RemoteFile]],
     *,
@@ -1192,4 +1246,9 @@ def main() -> None:
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except:
+        raise
+    finally:
+        test_tracker.generate_tap_reports()

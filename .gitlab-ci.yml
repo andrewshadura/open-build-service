@@ -189,6 +189,7 @@ unit-tests:
         python3-pydantic
         python3-requests
         python3-ruamel.yaml
+        python3-tap
         wait-for-it
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
     - docker info
