@@ -12,7 +12,7 @@ check-vendored:
   stage: sanity-check
   tags:
     - lightweight
-  image: debian:bookworm-slim
+  image: debian:trixie-slim
   script:
     - |
       test ! -d src/api/vendor/cache || (
@@ -104,7 +104,7 @@ unit-tests:
     when: always
 
 .boot-instance:
-  image: debian:bookworm-slim
+  image: debian:trixie-slim
   tags:
     - heavyweight
   services:
@@ -121,7 +121,6 @@ unit-tests:
       # process because the `ports` setting *merges* the original values with
       # the new ones, rather than fully overriding, which means that using the
       # same port numbers as in the actual compose file will cause conflicts.)
-      version: '2.1'
       services:
         frontend:
           image: $CI_REGISTRY_IMAGE/frontend:$TAG_SHA
@@ -182,10 +181,12 @@ unit-tests:
     - apt update && apt install -y --no-install-recommends
         curl
         debhelper
+        docker-cli
         docker-compose
         docker.io
         dpkg-dev
         equivs
+        git
         gnupg2
         osc
         osc-plugin-dput
@@ -207,6 +208,7 @@ unit-tests:
       [http://docker]
       user = Admin
       pass = opensuse
+      allow_http = 1
       EOF
     - docker-compose up -d
     - docker-compose ps
