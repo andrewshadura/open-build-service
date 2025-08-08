@@ -149,26 +149,31 @@ unit-tests:
             - "90:80"
       volumes:
         aptly-storage:
+          driver: local
           driver_opts:
             type: none
             o: bind
             device: './storage/aptly'
         backend-storage:
+          driver: local
           driver_opts:
             type: none
             o: bind
             device: './storage/backend'
         backend-logs:
+          driver: local
           driver_opts:
             type: none
             o: bind
             device: './logs/backend'
         frontend-logs:
+          driver: local
           driver_opts:
             type: none
             o: bind
             device: './logs/frontend'
         worker-logs:
+          driver: local
           driver_opts:
             type: none
             o: bind
