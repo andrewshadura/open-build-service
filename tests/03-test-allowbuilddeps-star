@@ -31,12 +31,15 @@ Package: hidden-pkg
 Depends: bash
 EOF
 
-equivs-build --source hidden-pkg.equivs
+equivs-build --full hidden-pkg.equivs
 
 osc --config "$dir/oscrc-owner" dput test:base-project-hidden-star hidden-pkg_*.dsc
 
 wait-for-pkg test:base-project-hidden-star hidden-pkg main x86_64
 tap_ok $? "hidden package built in the hidden project"
+
+: Equivs requires build dependencies to be satisfiable at build time
+dpkg -i hidden-pkg_*.deb
 
 : Now create an empty dependent package in the public project
 cat > public-pkg.equivs <<EOF
