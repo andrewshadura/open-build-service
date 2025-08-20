@@ -3,6 +3,10 @@ ARG DEBIAN_FRONTEND=noninteractive
 ARG GOPATH=/usr/local/go
 ARG WORKDIR=/tmp/sources
 
+ARG APTLY_REST_TOOLS_TAG=v0.0.6
+
+FROM ghcr.io/collabora/aptly-rest-tools/cli:${APTLY_REST_TOOLS_TAG} as aptly-rest-tools
+
 FROM debian:trixie-slim as server-base
 LABEL maintainer Andrej Shadura <andrew.shadura@collabora.co.uk>
 ENV LC_ALL=C.UTF-8
@@ -78,13 +82,6 @@ RUN cd $WORKDIR/src/backend; \
 
 RUN rm -rf $WORKDIR && mkdir -p $WORKDIR/stamp
 
-FROM rust:1.88-trixie as aptly-tools-builder
-RUN git clone https://github.com/collabora/aptly-rest-tools \
-              -b v0.0.6 --depth=1 \
-              /tmp/aptly-rest-tools
-WORKDIR /tmp/aptly-rest-tools
-RUN cargo build --release
-
 FROM server-base as server
 ARG WORKDIR
 ARG DEBIAN_FRONTEND
@@ -114,9 +111,9 @@ COPY docker/ /opt/
 
 RUN /opt/configure-backend-user.sh
 
-COPY --from=aptly-tools-builder \
-  /tmp/aptly-rest-tools/target/release/aptlyctl \
-  /tmp/aptly-rest-tools/target/release/obs2aptly \
+COPY --from=aptly-rest-tools \
+  /usr/local/bin/aptlyctl \
+  /usr/local/bin/obs2aptly \
   /usr/local/bin/
 
 RUN mkdir -p /srv/obs/dods /srv/obs/log /srv/obs/run \
