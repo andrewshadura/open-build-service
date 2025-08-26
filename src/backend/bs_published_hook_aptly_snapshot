@@ -46,7 +46,7 @@ die("can't find related aptly distribution for $projid/$repoid\n") if !$repo_con
 
 my $prefix = $repo_config->{'prefix'};
 my $distribution = distribution_basename($repo_config->{'distribution'});
-my @distributions = ($distribution, "$distribution-security", "$distribution-updates");
+my @distributions = ($distribution, "$distribution-security", "$distribution-updates", "$distribution-backports");
 
 my $projects_for_distros = {};
 
