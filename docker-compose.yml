@@ -28,7 +28,6 @@ services:
     expose:
       - '8080'
     ports:
-      # Expose on port 8088, because 8080 is already taken by the backend.
       - "127.0.0.1:8088:8080"
 
   aptly-content:
@@ -50,8 +49,6 @@ services:
       OBS_FRONTEND_HOST: frontend
       OBS_BACKEND_HOST: backend
       OBS_TRUST_PRIVATE_NET: 'yes'
-    ports:
-      - "127.0.0.1:8080:8080"
 
   frontend:
     image: registry.gitlab.collabora.com/obs/open-build-service/frontend
