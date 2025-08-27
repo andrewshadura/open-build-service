@@ -21,6 +21,10 @@ global:
   backend: {}
     # host: backend
 
+memcached:
+  image:
+    registry: public.ecr.aws
+
 mariadb:
   image:
     registry: public.ecr.aws
