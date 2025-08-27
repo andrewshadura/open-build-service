@@ -71,19 +71,19 @@ spec:
               protocol: TCP
           startupProbe:
             httpGet:
-              path: /
+              path: /about
               port: http
             initialDelaySeconds: 20
             periodSeconds: 20
             failureThreshold: 30
           livenessProbe:
             httpGet:
-              path: /
+              path: /about
               port: http
             failureThreshold: 1
           readinessProbe:
             httpGet:
-              path: /
+              path: /about
               port: http
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
