@@ -22,6 +22,8 @@ global:
     # host: backend
 
 mariadb:
+  image:
+    registry: public.ecr.aws
   auth:
     username: obs-api
     # password: someobs
