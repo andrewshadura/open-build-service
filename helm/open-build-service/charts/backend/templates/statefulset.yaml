@@ -28,8 +28,45 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- $services := dict
+        "repserver" (dict
+          "port" 5252
+        )
+        "srcserver" (dict
+          "port" 5352
+          "probePort" 5252
+        )
+        "dispatcher" (dict
+          "exec" "bs_dispatch"
+        )
+        "dodup" (dict)
+        "publisher" (dict
+          "exec" "bs_publish"
+          "probePort" 5352
+        )
+        "warden" (dict)
+        "servicedispatch" (dict)
+        "deltastore" (dict)
+        "srcservice" (dict
+          "exec" "bs_service"
+          "port" 5152
+        )
+        "clouduploader" (dict
+          "exec" "bs_clouduploadserver"
+          "port" 5452
+        )
+      }}
+      {{- range $arch := $arches }}
+      {{-   $services = merge $services (dict
+          (printf "scheduler-%s" (kebabcase $arch)) (dict
+            "exec" (printf "bs_sched %s" $arch)
+            "probePort" 5352
+          )
+      ) }}
+      {{- end }}
       containers:
-        - name: {{ $.Chart.Name }}
+        {{- range $container, $args := $services }}
+        - name: {{ $container }}
           securityContext:
             {{- toYaml $.Values.securityContext | nindent 12 }}
           image: "{{ $.Values.image.repository }}:{{ $.Values.image.tag }}"
@@ -41,29 +78,45 @@ spec:
               value: {{ include "frontend.hostname" $ | quote }}
             - name: OBS_ARCHES
               value: {{ $arches | join " " | quote }}
+          {{- $command := get $args "exec" | default (printf "bs_%s" $container) }}
+          {{- if not (hasPrefix $command "/") }}
+          {{- $command = printf "/usr/lib/obs/server/%s" $command }}
+          {{- end }}
+          command:
+            - /bin/sh
+            - -c
+          {{- if get $args "probePort" }}
+          startupProbe:
+            httpGet:
+              path: /
+              port: {{ get $args "probePort" }}
+            failureThreshold: 10
+            periodSeconds: 3
+          args:
+            - |
+              echo Waiting for port {{ get $args "probePort" }} to become available
+              curl --silent --fail --show-error --max-time 20 --retry 20 --retry-delay 5 --retry-all-errors --retry-max-time 120 127.0.0.1:{{ get $args "probePort" }}
+              echo Starting {{ $container }}
+              {{ $command }}
+          {{- else }}
+          args:
+            - |
+              {{ $command }}
+          {{- end }}
+          {{- if get $args "port" }}
           ports:
-            - name: repserver
-              containerPort: 5252
-              protocol: TCP
-            - name: srcserver
-              containerPort: 5352
+            - name: {{ $container }}
+              containerPort: {{ get $args "port" }}
               protocol: TCP
           livenessProbe:
             httpGet:
               path: /
-              port: repserver
-            httpGet:
-              path: /
-              port: srcserver
+              port: {{ $container }}
           readinessProbe:
             httpGet:
               path: /
-              port: repserver
-            httpGet:
-              path: /
-              port: srcserver
-          resources:
-            {{- toYaml $.Values.resources | nindent 12 }}
+              port: {{ $container }}
+          {{- end }}
           volumeMounts:
             - name: backend
               mountPath: /srv/obs
@@ -76,27 +129,6 @@ spec:
             - name: backend-extraconfig
               mountPath: /etc/obs/BSConfig.local.pm
               subPath: BSConfig.local.pm
-        {{- $logs := list
-          "dispatcher"
-          "dodup"
-          "publisher"
-          "rep_server"
-          "src_server"
-          "warden"
-        -}}
-        {{- range $arch := $arches -}}
-        {{- $logs = append $logs (printf "scheduler_%s" $arch) -}}
-        {{- end -}}
-        {{- range $service := $logs }}
-        - name: {{ $.Chart.Name }}-{{ $service | kebabcase }}-log
-          image: busybox
-          args:
-            - sh
-            - -c
-            - tail -n+1 -F /srv/obs/log/{{ $service }}.log
-          volumeMounts:
-            - name: backend-logs
-              mountPath: /srv/obs/log
         {{- end }}
       volumes:
         - name: backend
@@ -120,6 +152,8 @@ spec:
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      resources:
+        {{- toYaml $.Values.resources | nindent 8 }}
       {{- with .Values.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
