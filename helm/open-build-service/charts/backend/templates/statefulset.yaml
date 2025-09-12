@@ -72,6 +72,8 @@ spec:
           image: "{{ $.Values.image.repository }}:{{ $.Values.image.tag }}"
           imagePullPolicy: {{ $.Values.image.pullPolicy }}
           env:
+            - name: OBS_TRUST_PRIVATE_NET
+              value: '1'
             - name: OBS_BACKEND_HOST
               value: {{ include "backend.fullname" $ | quote }}
             - name: OBS_FRONTEND_HOST
