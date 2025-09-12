@@ -29,16 +29,16 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       containers:
-        - name: {{ .Chart.Name }}
+        - name: {{ $.Chart.Name }}
           securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+            {{- toYaml $.Values.securityContext | nindent 12 }}
+          image: "{{ $.Values.image.repository }}:{{ $.Values.image.tag }}"
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
           env:
             - name: OBS_BACKEND_HOST
-              value: {{ include "backend.fullname" . | quote }}
+              value: {{ include "backend.fullname" $ | quote }}
             - name: OBS_FRONTEND_HOST
-              value: {{ include "frontend.hostname" . | quote }}
+              value: {{ include "frontend.hostname" $ | quote }}
             - name: OBS_ARCHES
               value: {{ $arches | join " " | quote }}
           ports:
@@ -63,7 +63,7 @@ spec:
               path: /
               port: srcserver
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+            {{- toYaml $.Values.resources | nindent 12 }}
           volumeMounts:
             - name: backend
               mountPath: /srv/obs
@@ -103,9 +103,9 @@ spec:
         {{- end }}
       volumes:
         - name: backend
-          {{- if .Values.persistence.enabled }}
+          {{- if $.Values.persistence.enabled }}
           persistentVolumeClaim:
-            claimName: {{ .Values.persistence.existingClaim | default (printf "%s-storage" (include "backend.fullname" .)) }}
+            claimName: {{ $.Values.persistence.existingClaim | default (printf "%s-storage" (include "backend.fullname" .)) }}
           {{- else }}
           emptyDir: {}
           {{- end }}
@@ -113,7 +113,7 @@ spec:
           emptyDir: {}
         - name: backend-extraconfig
           configMap:
-            name: {{ include "backend.fullname" . }}-config
+            name: {{ include "backend.fullname" $ }}-config
             optional: true
       {{- with .Values.nodeSelector }}
       nodeSelector:
