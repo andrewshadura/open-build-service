@@ -61,7 +61,7 @@ RUN apt-get update \
         apt-utils \
         libsolv1 \
         libsolvext1 \
-        reprepro
+        reprepro=5.3.0-1.4co1debian11.1
 
 FROM server-base as compile-perl
 
