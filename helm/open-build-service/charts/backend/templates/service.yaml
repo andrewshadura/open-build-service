@@ -7,6 +7,10 @@ metadata:
 spec:
   type: ClusterIP
   ports:
+    - port: 5152
+      targetPort: srcservice
+      protocol: TCP
+      name: srcservice
     - port: 5252
       targetPort: repserver
       protocol: TCP
@@ -15,5 +19,9 @@ spec:
       targetPort: srcserver
       protocol: TCP
       name: srcserver
+    - port: 5452
+      targetPort: clouduploader
+      protocol: TCP
+      name: clouduploader
   selector:
     {{- include "backend.selectorLabels" . | nindent 4 }}
