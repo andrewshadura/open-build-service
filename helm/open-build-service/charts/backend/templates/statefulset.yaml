@@ -123,9 +123,6 @@ spec:
             - name: backend
               mountPath: /srv/obs
               subPath: data
-            - name: backend
-              mountPath: /etc/obs
-              subPath: config
             - name: backend-logs
               mountPath: /srv/obs/log
             - name: backend-extraconfig
