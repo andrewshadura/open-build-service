@@ -125,6 +125,8 @@ spec:
               subPath: data
             - name: backend-logs
               mountPath: /srv/obs/log
+            - name: backend-run
+              mountPath: /srv/obs/run
             - name: backend-extraconfig
               mountPath: /etc/obs/BSConfig.local.pm
               subPath: BSConfig.local.pm
@@ -138,6 +140,8 @@ spec:
           emptyDir: {}
           {{- end }}
         - name: backend-logs
+          emptyDir: {}
+        - name: backend-run
           emptyDir: {}
         - name: backend-extraconfig
           configMap:
