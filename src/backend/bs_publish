@@ -2994,11 +2994,17 @@ sub syncdb {
 sub publishevent {
   my ($req, $projid, $repoid) = @_;
 
+  my $prefixer;
   if ($req->{'forked'})  {
-    my $prepend = "$$: ";
-    $prepend = "$req->{'flavor'}.$prepend" if $req->{'flavor'};
-    binmode STDOUT, "via(BSStdRunner::prepend)";
-    print $prepend;
+    # Prefix this child's output with its pid (and flavour) so concurrent
+    # children can be told apart in the shared log.  Done via a redirection
+    # guard rather than a STDOUT PerlIO layer: a layer would be copied by
+    # Capture::Tiny onto its (seekable) capture file and break the
+    # capture_merged/tee_merged calls in publish().  The guard stays in scope
+    # for the rest of publishevent, restoring STDOUT on every exit path.
+    my $prefix = "$$: ";
+    $prefix = "$req->{'flavor'}.$prefix" if $req->{'flavor'};
+    $prefixer = BSUtil::prefix_stdout($prefix);
   }
 
   $db_sync_append = 1 if $req->{'forked'};

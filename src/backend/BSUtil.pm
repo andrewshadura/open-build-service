@@ -770,6 +770,27 @@ sub xsystem {
   }
 }
 
+=head2 prefix_stdout - prefix every line written to STDOUT
+
+  my $guard = BSUtil::prefix_stdout("$$: ");
+
+Redirect STDOUT through a dedicated subprocess that prepends $prefix to every
+line before writing it to the original STDOUT. The return value is a guard object;
+the prefixing stays in effect until the guard is destroyed or its finish method
+is called, at which point STDOUT is restored.
+Teardown happens on every exit path, including die().
+
+This does not change STDOUT's layer stack, so it does not interfere with code that
+captures STDOUT via Capture::Tiny (whose capture_merged/tee_merged reapply STDOUT's
+layers onto a temporary file and require that file to stay seekable).
+
+=cut
+
+sub prefix_stdout {
+  my ($prefix) = @_;
+  return BSUtil::OutputPrefixer->new($prefix);
+}
+
 sub unify {
   my %h = map {$_ => 1} @_; 
   return grep(delete($h{$_}), @_); 
@@ -928,6 +949,47 @@ sub diecritcal {
   chomp $msg;
   logcritical($msg);
   die("$msg\n");
+}
+
+# Guard object returned by BSUtil::prefix_stdout.  Construction forks a prefixer
+# subprocess that reads a pipe and writes $prefix-prefixed lines to the original
+# STDOUT, then points STDOUT at the pipe.  Destruction (or finish) restores
+# STDOUT and reaps the subprocess.
+package BSUtil::OutputPrefixer;
+
+sub new {
+  my ($class, $prefix) = @_;
+  open(my $origout, '>&', \*STDOUT) || die("dup STDOUT: $!\n");
+  pipe(my $reader, my $writer) || die("pipe: $!\n");
+  my $pid = BSUtil::xfork();
+  if (!$pid) {
+    close($writer);
+    open(STDOUT, '>&', $origout) || die("dup STDOUT: $!\n");
+    while (defined(my $line = <$reader>)) {
+      chomp $line;
+      print STDOUT "$prefix$line\n";
+    }
+    exit(0);
+  }
+  close($reader);
+  $writer->autoflush(1);
+  open(STDOUT, '>&', $writer) || die("redirect STDOUT: $!\n");
+  STDOUT->autoflush(1);
+  close($writer);
+  return bless {'origout' => $origout, 'pid' => $pid}, $class;
+}
+
+sub finish {
+  my ($self) = @_;
+  return unless $self->{'pid'};
+  open(STDOUT, '>&', $self->{'origout'}) || warn("restore STDOUT: $!\n");
+  waitpid($self->{'pid'}, 0);
+  $self->{'pid'} = undef;
+}
+
+sub DESTROY {
+  my ($self) = @_;
+  $self->finish();
 }
 
 1;
