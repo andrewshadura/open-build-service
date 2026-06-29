@@ -275,3 +275,39 @@ tag-latest-docker-image:
   only:
     variables:
       - $CI_DEFAULT_BRANCH == $CI_COMMIT_BRANCH
+
+helm-lint:
+  stage: test
+  tags:
+    - lightweight
+  image:
+    name: quay.io/helmpack/chart-testing:v3.14.0
+    entrypoint: [""]
+  needs:
+    - job: frontend
+    - job: backend
+  before_script:
+    - apk add --no-cache skopeo yq
+    - skopeo login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+  script:
+    - ct lint --charts helm/open-build-service --helm-lint-extra-args "--strict --with-subcharts"
+    - |
+      helm template release helm/open-build-service \
+        --set backend.image.tag="$TAG_SHA" \
+        --set frontend.image.tag="$TAG_SHA" \
+      > rendered.yaml
+      rc=0
+      echo Testing image availability
+      for img in $(yq -N '.. | (.containers?, .initContainers?, .ephemeralContainers?) | .[]? | .image' rendered.yaml | sort -u)
+      do
+          if skopeo inspect --no-tags "docker://$img" >/dev/null 2>err.log
+          then
+              printf '%-12s %s\n' OK "$img"
+          else
+              printf '%-12s %s\n' UNREACHABLE "$img"
+              sed 's/^/    /' err.log
+              sed $'s/^/\t/' err.log
+              rc=1
+          fi
+      done
+      exit "$rc"
