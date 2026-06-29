@@ -23,11 +23,13 @@ global:
 
 memcached:
   image:
-    registry: public.ecr.aws
+    registry: registry.gitlab.apertis.org/infrastructure/container-mirrors
+    tag: 1.6.15-debian-11-r9
 
 mariadb:
   image:
-    registry: public.ecr.aws
+    registry: registry.gitlab.apertis.org/infrastructure/container-mirrors
+    tag: 10.5.13
   auth:
     username: obs-api
     # password: someobs
